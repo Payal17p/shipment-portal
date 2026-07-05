@@ -1,0 +1,2669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Biz LogicX – Shipment Management Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #F1F5F9; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Sidebar active state */
+        .nav-btn.active { background: linear-gradient(135deg, #1e40af, #2563eb); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,0.35); }
+        .nav-btn { transition: all 0.18s ease; }
+        .nav-btn:not(.active):hover { background: rgba(255,255,255,0.07); color: #e2e8f0; }
+
+        /* Card style */
+        .card { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(15,23,42,0.05); }
+
+        /* Input style */
+        .field { border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 8px 14px; font-size: 13px; width: 100%; background: #fafafa; transition: border 0.15s; outline: none; }
+        /* Prevent number spinner from clipping value text */
+        input[type="number"] { -moz-appearance: textfield; }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { opacity: 1; width: 14px; }
+        /* Compact number inputs in package table */
+        #pkgTable input[type="number"] { padding: 6px 4px; font-size: 12px; }
+        #pkgTable select { padding: 6px 4px; font-size: 12px; }
+        .field:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+        /* Section header */
+        .sec-header { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 20px; }
+        .sec-header i { color: #2563eb; }
+
+        /* Toast */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+        .toast { padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); backdrop-filter: blur(8px); transition: all 0.3s ease; transform: translateX(20px); opacity: 0; max-width: 340px; }
+        .toast.show { transform: translateX(0); opacity: 1; }
+        .toast.success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .toast.error { background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; }
+
+        /* Mode toggle buttons */
+        .mode-btn { flex: 1; padding: 9px; border-radius: 10px; font-size: 12px; font-weight: 600; border: 1.5px solid #e2e8f0; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; transition: all 0.15s; background: #fff; color: #64748b; }
+        .mode-btn.active { background: #eff6ff; border-color: #2563eb; color: #1d4ed8; }
+
+        /* Direction buttons */
+        .dir-btn { flex: 1; padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; border: 1.5px solid #e2e8f0; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.15s; background: #fff; color: #475569; }
+        .dir-btn.active { background: #1d4ed8; border-color: #1d4ed8; color: #fff; box-shadow: 0 4px 12px rgba(29,78,216,0.3); }
+
+        /* Badge */
+        .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+        .badge-export { background: #dbeafe; color: #1d4ed8; }
+        .badge-import { background: #dcfce7; color: #166534; }
+
+        /* AI chat */
+        #ai-panel { position: fixed; bottom: 80px; right: 24px; width: 360px; max-height: 520px; background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 20px 60px rgba(15,23,42,0.15); display: flex; flex-direction: column; z-index: 500; overflow: hidden; transform: scale(0.95) translateY(10px); opacity: 0; pointer-events: none; transition: all 0.2s ease; }
+        #ai-panel.open { transform: scale(1) translateY(0); opacity: 1; pointer-events: all; }
+        #ai-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+        .ai-msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 12px; line-height: 1.5; }
+        .ai-msg.user { align-self: flex-end; background: #1d4ed8; color: #fff; border-bottom-right-radius: 4px; }
+        .ai-msg.assistant { align-self: flex-start; background: #f1f5f9; color: #1e293b; border-bottom-left-radius: 4px; }
+        .ai-msg.thinking { background: #f8fafc; color: #94a3b8; font-style: italic; }
+
+        /* Loader */
+        #globalLoader { position: fixed; inset: 0; background: rgba(15,23,42,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9000; }
+        #globalLoader.hidden { display: none; }
+        .loader-ring { width: 44px; height: 44px; border: 4px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Table */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .data-table thead th { background: #f8fafc; padding: 10px 12px; text-align: left; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+        .data-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.1s; }
+        .data-table tbody tr:hover { background: #f8fafc; }
+        .data-table tbody td { padding: 10px 12px; color: #475569; }
+
+        /* Warning boxes */
+        .warn-box { border-radius: 12px; padding: 14px 16px; display: flex; gap: 12px; font-size: 12px; }
+        .warn-amber { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; }
+        .warn-blue { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; }
+
+        /* Pulse dot */
+        .dot-pulse { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; display: inline-block; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* Direction tile */
+        .dir-tile { cursor: pointer; border: none; width: 100%; }
+        .dir-tile:focus { outline: none; }
+
+        /* Mobile bottom nav active */
+        .mob-nav-btn.active { color: #2563eb; }
+
+        @media (max-width: 768px) {
+            #ai-panel { width: calc(100vw - 32px); right: 16px; bottom: 72px; }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased">
+
+<div class="flex h-screen overflow-hidden">
+
+    <!-- ═══════════════════════════════════════ SIDEBAR ═══════════════════════════════════════ -->
+    <aside id="sidebar" class="w-64 bg-slate-900 text-slate-100 flex flex-col justify-between hidden md:flex z-20 shadow-xl flex-shrink-0">
+        <div>
+            <div class="p-6 border-b border-slate-800">
+                <h2 class="text-xl font-extrabold text-white flex items-center gap-2.5 tracking-tight">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow">
+                        <i class="fas fa-cubes text-white text-sm"></i>
+                    </div>
+                    Biz LogicX
+                </h2>
+                <p class="text-[10px] mt-1.5 text-slate-500 font-semibold uppercase tracking-widest">Freight Operations Hub</p>
+            </div>
+
+            <nav class="mt-4 px-3 space-y-1">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400">
+                    <i class="fas fa-chart-pie w-5 text-center"></i> Dashboard
+                </button>
+                <button onclick="switchTab('shipments')" id="nav-shipments" class="nav-btn active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white">
+                    <i class="fas fa-plus-circle w-5 text-center"></i> New Shipment
+                </button>
+                <button onclick="switchTab('logs')" id="nav-logs" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400">
+                    <i class="fas fa-clipboard-list w-5 text-center"></i> Shipment Logs
+                </button>
+                <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400">
+                    <i class="fas fa-tools w-5 text-center"></i> Configuration
+                </button>
+            </nav>
+        </div>
+
+        <div class="p-4 border-t border-slate-800 bg-slate-950">
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center font-bold text-white text-sm shadow">BL</div>
+                <div>
+                    <p class="text-xs font-semibold text-white">Operator Console</p>
+                    <p class="text-[10px] text-emerald-400 flex items-center gap-1.5 mt-0.5">
+                        <span class="dot-pulse"></span> System Active
+                    </p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ═══════════════════════════════════════ MAIN AREA ═══════════════════════════════════════ -->
+    <main class="flex-1 flex flex-col overflow-hidden bg-slate-50">
+
+        <!-- HEADER -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-5 z-10 shadow-sm flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <button class="md:hidden text-slate-500 hover:text-slate-800 text-xl" onclick="toggleMobileSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div>
+                    <h1 id="page-title" class="text-base md:text-lg font-bold text-slate-800 leading-tight">New Shipment Log</h1>
+                    <p id="page-sub" class="text-[10px] text-slate-400 font-medium hidden md:block">Biz LogicX · Freight Operations Hub</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="hidden md:flex text-xs bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200 text-slate-500 items-center gap-2">
+                    <i class="far fa-calendar-alt text-blue-400"></i>
+                    <span id="current-date-span" class="mono"></span>
+                </span>
+                <button onclick="toggleAiPanel()" title="AI Logistics Assistant" class="relative flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-semibold rounded-xl shadow transition">
+                    <i class="fas fa-robot"></i>
+                    <span class="hidden sm:inline">AI Assistant</span>
+                    <span id="ai-notif" class="absolute -top-1 -right-1 h-3 w-3 bg-emerald-400 rounded-full ring-2 ring-white hidden"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- CONTENT AREA -->
+        <div id="main-content-area" class="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
+            <!-- Dynamic content -->
+        </div>
+    </main>
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<div class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 shadow-xl flex justify-around py-2 z-30">
+    <button onclick="switchTab('dashboard')" id="mob-dashboard" class="mob-nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-blue-600 transition">
+        <i class="fas fa-chart-pie text-base"></i><span class="text-[9px] font-semibold">Home</span>
+    </button>
+    <button onclick="switchTab('shipments')" id="mob-shipments" class="mob-nav-btn active flex flex-col items-center gap-0.5 text-blue-600 transition">
+        <i class="fas fa-plus-circle text-base"></i><span class="text-[9px] font-semibold">New Entry</span>
+    </button>
+    <button onclick="switchTab('logs')" id="mob-logs" class="mob-nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-blue-600 transition">
+        <i class="fas fa-clipboard-list text-base"></i><span class="text-[9px] font-semibold">Logs</span>
+    </button>
+    <button onclick="switchTab('settings')" id="mob-settings" class="mob-nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-blue-600 transition">
+        <i class="fas fa-tools text-base"></i><span class="text-[9px] font-semibold">System</span>
+    </button>
+</div>
+
+<!-- AI ASSISTANT PANEL -->
+<div id="ai-panel">
+    <div class="flex items-center justify-between p-4 border-b border-slate-100 bg-gradient-to-r from-blue-600 to-indigo-600">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                <i class="fas fa-robot text-white text-sm"></i>
+            </div>
+            <div>
+                <p class="text-sm font-bold text-white">Logistics AI</p>
+                <p class="text-[10px] text-blue-200">Powered by Claude · Biz LogicX</p>
+            </div>
+        </div>
+        <button onclick="toggleAiPanel()" class="text-white/70 hover:text-white transition">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div id="ai-messages">
+        <div class="ai-msg assistant">👋 Hello! I'm your Biz LogicX AI assistant. Ask me anything about international freight, customs compliance, HS codes, Incoterms, or shipment best practices.</div>
+    </div>
+    <div class="p-3 border-t border-slate-100 flex gap-2">
+        <input id="ai-input" type="text" placeholder="Ask about freight, customs, HS codes..." class="field flex-1 text-xs" onkeydown="if(event.key==='Enter')sendAiMessage()">
+        <button onclick="sendAiMessage()" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition flex-shrink-0">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+</div>
+
+<!-- AI FLOATING BUTTON (mobile) -->
+<button onclick="toggleAiPanel()" class="md:hidden fixed bottom-20 right-4 w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center z-40">
+    <i class="fas fa-robot"></i>
+</button>
+
+<!-- GLOBAL LOADER -->
+<div id="globalLoader" class="hidden">
+    <div class="bg-white p-7 rounded-2xl shadow-2xl flex flex-col items-center max-w-xs text-center border border-slate-100">
+        <div class="loader-ring"></div>
+        <p class="mt-4 font-bold text-slate-800 text-sm">Processing</p>
+        <p class="text-xs text-slate-400 mt-1">Saving to local database...</p>
+    </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════════ -->
+<!-- JAVASCRIPT ENGINE -->
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════════ -->
+<script>
+
+// ══════════════════════════════════════ STATE ══════════════════════════════════════
+
+let activeTab = 'shipments';
+let aiPanelOpen = false;
+let aiConversation = [];
+
+let shipmentData = {
+    bookingDate: "",
+    direction: "export",
+    originCountry: "India",
+    originPort: "",
+    destCountry: "",
+    destPort: "",
+    billTo: "Shipper",
+    shipperName: "",
+    consignee: "",
+    nature: "Commercial",
+    clearanceVendor: "",
+    transportMode: "air",
+    carrier: "UPS",
+    service: "Saver",
+    purchaseVendor: "",
+    hawb: "",
+    mawb: "",
+    customerInvoiceNo: "",
+    customerInvoiceDate: "",
+    invoiceTotalValue: "",
+    invoiceCurrency: "USD",
+    exchangeRate: "",
+    ewabFileId: "",
+    ewabFileName: "",
+    sbNumber: "",
+    sbDate: "",
+    packages: [{ length: "", width: "", height: "", unit: "inches", weight: "", pkgType: "Box", goodsDesc: "", hsCode: "", unitPrice: "", currency: "USD" }],
+    otherDocuments: [],
+    selectedServices: [],
+    otherServices: [],
+    saleItems: [],
+    purchaseItems: [],
+    remarks: ""
+};
+
+const allServicesList = [
+    "Pick up Charge", "Delivery Charge", "Cargo Insurance", "Warehousing & Last-Mile Delivery",
+    "Documentation", "Tracking & Real-time Visibility", "Dangerous Goods Handling",
+    "Time-Bound Shipments", "Temperature-Sensitive Cargo", "Packaging Solutions",
+    "Palletization", "Marine Insurance", "Transportation", "Ad Code Registration",
+    "Industry Expert Solutions"
+];
+
+const carrierOptionsFull = {
+    air: {
+        carriers: ["UPS", "DHL", "FedEx", "FF", "Others"],
+        services: {
+            "UPS":    ["Saver", "Expedited", "WWEF"],
+            "DHL":    ["Express"],
+            "FedEx":  ["Intl Priority", "IPF", "IE", "IEF"],
+            "FF":     ["Port to Port - AIR"],
+            "Others": [
+                "Local Carrier",
+                "Only Clearance",
+                "Only Transport",
+                "Only Cargo Insurance",
+                "Only Warehousing & Last-Mile Delivery",
+                "Only Documentation (Commercial Invoice, Packing List, B/L, AWB, etc.)",
+                "Only Certificate of Origin",
+                "Only Tracking & Real-time Visibility",
+                "Only Dangerous Goods Handling",
+                "Only Time-Bound Shipments",
+                "Only Temperature-Sensitive Cargo",
+                "Only Packaging Solutions",
+                "Only Palletization",
+                "Only Marine Insurance",
+                "Only Transportation",
+                "Only Ad Code Registration",
+                "Only Industry Expert Solutions"
+            ]
+        }
+    },
+    sea: {
+        carriers: ["FF", "Others"],
+        services: {
+            "FF": ["Sea LCL", "Sea FCL 20Ft", "Sea FCL 40Ft"],
+            "Others": [
+                "Refer Container",
+                "Only Clearance",
+                "Only Transport",
+                "Only Cargo Insurance",
+                "Only Warehousing & Last-Mile Delivery",
+                "Only Documentation (Commercial Invoice, Packing List, B/L, AWB, etc.)",
+                "Only Certificate of Origin",
+                "Only Tracking & Real-time Visibility",
+                "Only Dangerous Goods Handling",
+                "Only Time-Bound Shipments",
+                "Only Temperature-Sensitive Cargo",
+                "Only Packaging Solutions",
+                "Only Palletization",
+                "Only Marine Insurance",
+                "Only Transportation",
+                "Only Ad Code Registration",
+                "Only Industry Expert Solutions"
+            ]
+        }
+    }
+};
+
+// ══════════════════════════════════════ REVENUE HEADS CATALOG ══════════════════════════════════════
+// Structured by Transport Method → Category → Charge Head, based on the user-provided
+// "Grouping_charges.xlsx" reference (UPS/FedEx/DHL, Port to Port - Air, By Sea groupings).
+// SAC codes per CBIC Scheme of Classification of Services (Notification 11/2017-CT Rate, as amended):
+//   996531 Air transport of goods | 996812 Courier services | 996521 Ocean/coastal water transport of goods
+//   996711 Container handling | 996712 Customs House Agent (CHA) services | 996713 Clearing & forwarding
+//   996719 Other cargo & baggage handling | 996721 Refrigerated storage | 996729 Other storage & warehousing
+const REVENUE_HEADS = {
+    air: {
+        "UPS/FedEx/DHL": {
+            sac: "996812",
+            sacDesc: "Courier services",
+            gst: 18,
+            heads: [
+                { name: "Freight",                          sac: "996812", gst: 18 },
+                { name: "PSS",                               sac: "996812", gst: 18 },
+                { name: "Surge Fee",                         sac: "996812", gst: 18 },
+                { name: "Fuel Surcharge",                    sac: "996812", gst: 18 },
+                { name: "Handling",                          sac: "996719", gst: 18 },
+                { name: "DDP",                                sac: "996812", gst: 18 },
+                { name: "Fumigation",                        sac: "996719", gst: 18 },
+                { name: "Clearance",                         sac: "996712", gst: 18 },
+                { name: "ASI",                                sac: "996719", gst: 18 },
+                { name: "Adani/GSEC",                        sac: "996711", gst: 18 },
+                { name: "EDI",                                sac: "996719", gst: 18 },
+                { name: "AHC",                                sac: "996719", gst: 18 },
+                { name: "LPS",                                sac: "996719", gst: 18 },
+                { name: "Service Charge",                    sac: "996812", gst: 18 },
+                { name: "Transportation",                    sac: "996511", gst: 5  },
+                { name: "DO Charge",                         sac: "996711", gst: 18 },
+                { name: "Label",                              sac: "996719", gst: 18 },
+                { name: "MAWB",                               sac: "996812", gst: 18 },
+                { name: "Examination",                       sac: "996719", gst: 18 },
+                { name: "Documentation",                     sac: "996719", gst: 18 },
+                { name: "Bonded Charge",                     sac: "996729", gst: 18 },
+                { name: "Packing/Wrapping",                  sac: "998540", gst: 18 }
+            ]
+        },
+        "Port to Port - Air": {
+            sac: "996531",
+            sacDesc: "Air transport services of letters & parcels and other goods",
+            gst: 18,
+            heads: [
+                { name: "Freight",                          sac: "996531", gst: 18 },
+                { name: "Gmax",                               sac: "996531", gst: 18 },
+                { name: "Security Surcharge",                sac: "996531", gst: 18 },
+                { name: "Electronic Processing Carrier",     sac: "996719", gst: 18 },
+                { name: "Advance Shipment",                  sac: "996719", gst: 18 },
+                { name: "CCC Fee",                            sac: "996719", gst: 18 },
+                { name: "X Ray",                              sac: "996719", gst: 18 },
+                { name: "Clearance",                         sac: "996712", gst: 18 },
+                { name: "ASI",                                sac: "996719", gst: 18 },
+                { name: "Adani/GSEC",                        sac: "996711", gst: 18 },
+                { name: "AMS",                                sac: "996719", gst: 18 },
+                { name: "CGC",                                sac: "996719", gst: 18 },
+                { name: "MAWB",                               sac: "996531", gst: 18 },
+                { name: "HAWB",                               sac: "996531", gst: 18 },
+                { name: "Documentation",                     sac: "996719", gst: 18 },
+                { name: "Gmax",                               sac: "996531", gst: 18 },
+                { name: "Bonded Charge",                     sac: "996729", gst: 18 },
+                { name: "Insurance",                         sac: "997136", gst: 18 },
+                { name: "Ex-works",                          sac: "996719", gst: 18 },
+                { name: "Palletization",                     sac: "996719", gst: 18 },
+                { name: "Fumigation",                        sac: "996719", gst: 18 },
+                { name: "Packing/Wrapping",                  sac: "998540", gst: 18 }
+            ]
+        }
+    },
+    sea: {
+        "By Sea": {
+            sac: "996521",
+            sacDesc: "Coastal & transoceanic water transport services of goods",
+            gst: 5,
+            heads: [
+                { name: "Freight",                          sac: "996521", gst: 5  },
+                { name: "CMC",                                sac: "996719", gst: 18 },
+                { name: "Concor",                             sac: "996711", gst: 18 },
+                { name: "VGM",                                sac: "996719", gst: 18 },
+                { name: "Clearance",                         sac: "996712", gst: 18 },
+                { name: "Origin Clearance",                  sac: "996712", gst: 18 },
+                { name: "Currency Conversion Charge",        sac: "997119", gst: 18 },
+                { name: "IHC",                                sac: "996719", gst: 18 },
+                { name: "THC",                                sac: "996719", gst: 18 },
+                { name: "DO Charge",                         sac: "996711", gst: 18 },
+                { name: "Container Placement",               sac: "996711", gst: 18 },
+                { name: "Concor",                             sac: "996711", gst: 18 },
+                { name: "Palletization",                     sac: "996719", gst: 18 },
+                { name: "Fumigation",                        sac: "996719", gst: 18 },
+                { name: "Packing/Wrapping",                  sac: "998540", gst: 18 },
+                { name: "Transportation",                    sac: "996511", gst: 5  },
+                { name: "Fumigation",                        sac: "996719", gst: 18 },
+                { name: "Ex-works",                          sac: "996719", gst: 18 }
+            ]
+        }
+    }
+};
+
+// Nature → which transport modes and carriers are allowed
+const natureModeRestrictions = {
+    "Sample":           { modes: ["air"], carriers: ["UPS","DHL","FedEx"] },
+    "Only Document":    { modes: ["air"], carriers: ["UPS","DHL","FedEx"] }
+};
+// Natures that require clearance vendor
+const naturesNeedingClearance = ["Commercial","CSB5","Pan Card Clearance"];
+
+// ══════════════════════════════════════ LOCAL DB ══════════════════════════════════════
+
+function getShipments() {
+    try { return JSON.parse(localStorage.getItem('blx_shipments') || '[]'); } catch { return []; }
+}
+
+function saveShipment(data) {
+    const records = getShipments();
+    const id = 'BLX-' + Date.now().toString(36).toUpperCase();
+    const record = { ...data, shipmentId: id, createdAt: new Date().toISOString() };
+    records.unshift(record);
+    localStorage.setItem('blx_shipments', JSON.stringify(records));
+    return id;
+}
+
+function clearAllShipments() {
+    localStorage.removeItem('blx_shipments');
+}
+
+// ══════════════════════════════════════ INIT ══════════════════════════════════════
+
+window.onload = function () {
+    document.getElementById('current-date-span').innerText = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    switchTab(activeTab);
+};
+
+// ══════════════════════════════════════ ROUTING ══════════════════════════════════════
+
+function switchTab(tabId) {
+    activeTab = tabId;
+
+    // Desktop nav
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById(`nav-${tabId}`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    // Mobile nav
+    document.querySelectorAll('.mob-nav-btn').forEach(btn => btn.classList.remove('active', 'text-blue-600'));
+    document.querySelectorAll('.mob-nav-btn').forEach(btn => btn.classList.add('text-slate-400'));
+    const mobBtn = document.getElementById(`mob-${tabId}`);
+    if (mobBtn) { mobBtn.classList.add('active', 'text-blue-600'); mobBtn.classList.remove('text-slate-400'); }
+
+    const contentArea = document.getElementById('main-content-area');
+    const titleArea = document.getElementById('page-title');
+
+    const titles = { dashboard: 'Executive Dashboard', shipments: 'New Shipment Log', logs: 'Shipment Ledger', settings: 'System Configuration' };
+    titleArea.innerText = titles[tabId] || tabId;
+
+    if (tabId === 'dashboard') renderDashboard(contentArea);
+    else if (tabId === 'shipments') renderShipmentForm(contentArea);
+    else if (tabId === 'logs') renderLogsTable(contentArea);
+    else if (tabId === 'settings') renderSettings(contentArea);
+}
+
+function toggleMobileSidebar() {
+    const sidebar = document.querySelector('aside');
+    sidebar.classList.toggle('hidden');
+    sidebar.classList.toggle('flex');
+}
+
+// ══════════════════════════════════════ TOAST ══════════════════════════════════════
+
+function showToast(message, isError = false) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${isError ? 'error' : 'success'}`;
+    const icon = isError ? '<i class="fas fa-exclamation-circle text-rose-500"></i>' : '<i class="fas fa-check-circle text-emerald-500"></i>';
+    toast.innerHTML = `${icon} <span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 4000);
+}
+
+// ══════════════════════════════════════ CALCULATIONS ══════════════════════════════════════
+
+// Express carriers: DIM weight (L×W×H cm) / 5000
+const EXPRESS_CARRIERS = ['UPS', 'DHL', 'FedEx'];
+
+function calculateDIM(l, w, h, unit) {
+    let lc = l, wc = w, hc = h;
+    if (unit === 'inches') { lc = l * 2.54; wc = w * 2.54; hc = h * 2.54; }
+    return parseFloat(((lc * wc * hc) / 5000).toFixed(2));
+}
+
+function calculateVolumetric(l, w, h, unit) {
+    const divisor = unit === 'cm' ? 5000 : 366;
+    return Math.ceil((l * w * h) / divisor);
+}
+function calculateCBM(l, w, h, unit) {
+    const meters = unit === 'cm' ? (l * w * h) / 1000000 : (l * w * h) / 61023.744;
+    return parseFloat(meters.toFixed(4));
+}
+function updatePkgCbmDirect(idx, value) {
+    // User typed a CBM directly — store it and mark as manual override
+    const v = parseFloat(value);
+    if (!isNaN(v) && value !== '') {
+        shipmentData.packages[idx].cbmDirect = v;
+    } else {
+        delete shipmentData.packages[idx].cbmDirect; // blank = revert to auto-calc
+    }
+    syncCalculations();
+}
+
+function syncCalculations() {
+    const isAir     = shipmentData.transportMode === 'air';
+    const isExpress = isAir && EXPRESS_CARRIERS.includes(shipmentData.carrier);
+    const isSea     = !isAir;
+
+    shipmentData.packages.forEach((pkg, i) => {
+        const qty   = Math.max(1, parseInt(pkg.qty) || 1);
+        const l     = pkg.length || 0, w = pkg.width || 0, h = pkg.height || 0;
+        const gross = (pkg.weight || 0) * qty;   // gross wt × number of boxes
+
+        if (isAir) {
+            if (isExpress) {
+                // DIM weight per box × qty
+                const dimPerBox  = calculateDIM(l, w, h, pkg.unit);
+                pkg.dim          = parseFloat((dimPerBox * qty).toFixed(2));
+                pkg.chargeable   = parseFloat(Math.max(gross, pkg.dim).toFixed(2));
+            } else {
+                // Volumetric per box × qty
+                const volPerBox  = calculateVolumetric(l, w, h, pkg.unit);
+                pkg.volumetric   = parseFloat((volPerBox * qty).toFixed(2));
+                pkg.chargeable   = parseFloat(Math.max(gross, pkg.volumetric).toFixed(2));
+            }
+
+            const volEl = document.getElementById('pkg-vol-' + i);
+            const chgEl = document.getElementById('pkg-chg-' + i);
+            if (volEl) volEl.innerText = isExpress
+                ? pkg.dim.toFixed(2) + ' kg'
+                : pkg.volumetric.toFixed(2) + ' kg';
+            if (chgEl) chgEl.innerText = pkg.chargeable.toFixed(2) + ' kg';
+
+        } else {
+            // Sea — use direct CBM if entered, else auto-calculate × qty
+            if (pkg.cbmDirect !== undefined) {
+                pkg.cbm = parseFloat(pkg.cbmDirect.toFixed(4));
+            } else {
+                const cbmPerBox = calculateCBM(l, w, h, pkg.unit);
+                pkg.cbm = parseFloat((cbmPerBox * qty).toFixed(4));
+            }
+            pkg.chargeable = gross;
+            // (no per-row DOM update for sea CBM — the input field is the display)
+        }
+    });
+
+    // ── Totals footer ─────────────────────────────────────────────
+    const totalGross = shipmentData.packages.reduce((s, p) => {
+        const qty = Math.max(1, parseInt(p.qty) || 1);
+        return s + (parseFloat(p.weight) || 0) * qty;
+    }, 0);
+
+    const tGW = document.getElementById('totalGrossWt');
+    const tVW = document.getElementById('totalVolWt');
+    const tCH = document.getElementById('totalChargeable');
+
+    if (tGW) tGW.textContent = totalGross.toFixed(2) + ' kg';
+
+    if (isAir) {
+        const totalVol = shipmentData.packages.reduce((s, p) =>
+            s + (isExpress ? (parseFloat(p.dim) || 0) : (parseFloat(p.volumetric) || 0)), 0);
+        const totalChg = shipmentData.packages.reduce((s, p) => s + (parseFloat(p.chargeable) || 0), 0);
+        if (tVW) tVW.textContent = totalVol.toFixed(2) + ' kg';
+        if (tCH) tCH.textContent = totalChg.toFixed(2) + ' kg';
+    } else {
+        // Sea totals
+        const totalCbm = shipmentData.packages.reduce((s, p) => s + (parseFloat(p.cbm) || 0), 0);
+        if (tVW) tVW.textContent = totalCbm.toFixed(4) + ' m³';
+        if (tCH) tCH.textContent = '—'; // no chargeable for sea in this view
+    }
+
+    evaluateValueTriggers();
+}
+
+function evaluateValueTriggers() {
+    const val      = parseFloat(document.getElementById('invoiceTotalValue')?.value) || 0;
+    const currency = document.getElementById('invoiceCurrency')?.value || 'USD';
+    const rate     = parseFloat(document.getElementById('exchangeRate')?.value) || 0;
+    const nature   = document.getElementById('nature')?.value || '';
+
+    // Compute INR equivalent only when rate is provided; otherwise show raw value if already INR
+    let inr = 0;
+    if (currency === 'INR') {
+        inr = val;
+    } else if (rate > 0) {
+        inr = val * rate;
+    }
+
+    // ── INR equivalent live display ──────────────────────────────
+    const inrDisplay   = document.getElementById('inrEquivalentDisplay');
+    const inrValEl     = document.getElementById('inrEquivalentValue');
+    const exceedEl     = document.getElementById('sampleLimitExceeded');
+    const okEl         = document.getElementById('sampleLimitOK');
+    const showInrCalc  = val > 0 && (currency === 'INR' || rate > 0);
+
+    if (inrDisplay) {
+        inrDisplay.classList.toggle('hidden', !showInrCalc);
+        if (showInrCalc && inrValEl) {
+            inrValEl.textContent = '₹' + inr.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+        }
+    }
+
+    // ── Sample limit indicators ──────────────────────────────────
+    const isSample = nature === 'Sample';
+
+    // Show/update the max-foreign-currency figure in the label
+    const sampleLimitLabel   = document.getElementById('sampleLimitLabel');
+    const sampleMaxForeignEl = document.getElementById('sampleMaxForeign');
+    if (sampleLimitLabel) {
+        sampleLimitLabel.classList.toggle('hidden', !isSample);
+        if (isSample && sampleMaxForeignEl && currency !== 'INR' && rate > 0) {
+            const maxForeign = (25000 / rate).toFixed(2);
+            sampleMaxForeignEl.textContent = currency + ' ' + maxForeign;
+        } else if (sampleMaxForeignEl) {
+            sampleMaxForeignEl.textContent = '';
+        }
+    }
+
+    // Show exceed / OK indicator for Sample
+    if (exceedEl && okEl && inrDisplay) {
+        if (isSample && showInrCalc) {
+            const over = inr > 25000;
+            exceedEl.classList.toggle('hidden', !over);
+            okEl.classList.toggle('hidden', over);
+        } else {
+            exceedEl.classList.add('hidden');
+            okEl.classList.add('hidden');
+        }
+    }
+
+    // ── Amber warning banner (sample) ───────────────────────────
+    const sampleWarn = document.getElementById('sampleWarning');
+    if (sampleWarn) {
+        sampleWarn.classList.toggle('hidden', !(isSample && inr > 25000));
+    }
+
+    // ── EWAB warning (>= INR 50,000) ────────────────────────────
+    const ewabWarn   = document.getElementById('ewabWarning');
+    const ewabUpload = document.getElementById('ewabUploadContainer');
+    if (ewabWarn && ewabUpload) {
+        const show = inr >= 50000;
+        ewabWarn.classList.toggle('hidden', !show);
+        ewabUpload.classList.toggle('hidden', !show);
+    }
+
+    // ── Financial card visibility ────────────────────────────────
+    const finCard = document.getElementById('financialComplianceCard');
+    if (finCard) {
+        const showFin = ['Commercial', 'Pan Card Clearance', 'Sample', 'CSB5'].includes(nature);
+        finCard.classList.toggle('hidden', !showFin);
+    }
+
+    // ── Waybill section visibility ───────────────────────────────
+    const waybillSec = document.getElementById('waybillSection');
+    if (waybillSec) {
+        const showWaybill = ['Commercial', 'Pan Card Clearance'].includes(nature);
+        waybillSec.classList.toggle('hidden', !showWaybill);
+    }
+
+    // ── SB / BE section visibility ────────────────────────────────
+    const sbSec = document.getElementById('sbSection');
+    if (sbSec) {
+        const showSB = ['Commercial', 'CSB5', 'Pan Card Clearance'].includes(nature);
+        sbSec.classList.toggle('hidden', !showSB);
+    }
+}
+
+// ══════════════════════════════════════ SHIPMENT FORM ══════════════════════════════════════
+
+function renderShipmentForm(container) {
+    const isExport = shipmentData.direction === 'export';
+    const isAir    = shipmentData.transportMode === 'air';
+    const today    = new Date().toISOString().split('T')[0];
+
+    container.innerHTML = `
+        <form id="shipmentMainForm" onsubmit="submitShipmentForm(event)" class="space-y-5">
+
+            <!-- ① BOOKING DATE -->
+            <div class="card p-5 flex flex-col md:flex-row items-center justify-between gap-4 border-l-4 border-blue-500">
+                <div class="flex items-center gap-4">
+                    <div class="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center shadow flex-shrink-0">
+                        <i class="fas fa-calendar-day text-white"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Booking Date</p>
+                        <p class="text-xs text-slate-400 mt-0.5">Date on which this shipment entry is being logged</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <input type="date" id="bookingDate" value="${shipmentData.bookingDate || today}"
+                        class="field mono font-semibold text-slate-800 md:w-52" required>
+                    <div class="px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs font-semibold text-blue-700 hidden md:block" id="bookingDateDisplay"></div>
+                </div>
+            </div>
+
+            <!-- ② SHIPMENT DIRECTION -->
+            <div class="card overflow-hidden">
+                <div class="grid grid-cols-2">
+                    <!-- EXPORT tile -->
+                    <button type="button" onclick="setDirection('export')" id="dir-export"
+                        class="dir-tile relative flex flex-col items-center justify-center gap-3 py-6 px-4 border-r border-slate-100 transition
+                               ${isExport ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 hover:bg-blue-50'}">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-plane-departure text-2xl"></i>
+                            <i class="fas fa-ship text-xl opacity-60"></i>
+                        </div>
+                        <div class="text-center">
+                            <p class="font-bold text-sm">Export Shipment</p>
+                            <p class="text-[10px] mt-0.5 ${isExport ? 'text-blue-200' : 'text-slate-400'}">Goods Leaving India</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-[10px] font-semibold px-3 py-1 rounded-full
+                                    ${isExport ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-500'}">
+                            <span class="w-4 h-4 rounded-full overflow-hidden inline-flex items-center justify-center bg-orange-500 text-[8px] font-black text-white">IN</span>
+                            Origin: India (Fixed)
+                        </div>
+                        ${isExport ? '<div class="absolute top-3 right-3 w-5 h-5 bg-white rounded-full flex items-center justify-center"><i class="fas fa-check text-blue-600 text-xs"></i></div>' : ''}
+                    </button>
+                    <!-- IMPORT tile -->
+                    <button type="button" onclick="setDirection('import')" id="dir-import"
+                        class="dir-tile relative flex flex-col items-center justify-center gap-3 py-6 px-4 transition
+                               ${!isExport ? 'bg-emerald-600 text-white' : 'bg-white text-slate-500 hover:bg-emerald-50'}">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-plane-arrival text-2xl"></i>
+                            <i class="fas fa-ship text-xl opacity-60"></i>
+                        </div>
+                        <div class="text-center">
+                            <p class="font-bold text-sm">Import Shipment</p>
+                            <p class="text-[10px] mt-0.5 ${!isExport ? 'text-emerald-200' : 'text-slate-400'}">Goods Arriving in India</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-[10px] font-semibold px-3 py-1 rounded-full
+                                    ${!isExport ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'}">
+                            <span class="w-4 h-4 rounded-full overflow-hidden inline-flex items-center justify-center bg-orange-500 text-[8px] font-black text-white">IN</span>
+                            Destination: India (Fixed)
+                        </div>
+                        ${!isExport ? '<div class="absolute top-3 right-3 w-5 h-5 bg-white rounded-full flex items-center justify-center"><i class="fas fa-check text-emerald-600 text-xs"></i></div>' : ''}
+                    </button>
+                </div>
+            </div>
+
+            <!-- ③ ORIGIN & DESTINATION (India fixed) -->
+            <div class="card p-5 space-y-4">
+                <div class="sec-header"><i class="fas fa-map-marked-alt"></i> Origin & Destination</div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Origin Country -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Origin Country</label>
+                        ${isExport
+                            ? `<div class="field bg-orange-50 border-orange-200 flex items-center gap-2 font-semibold text-orange-700">
+                                <span class="w-5 h-5 rounded-full bg-orange-500 text-white text-[9px] font-black flex items-center justify-center flex-shrink-0">IN</span>
+                                India <span class="text-orange-400 text-[10px] font-normal ml-auto">Auto-set</span>
+                               </div>
+                               <input type="hidden" id="originCountry" value="India">`
+                            : `<input type="text" id="originCountry" value="${shipmentData.originCountry}" placeholder="e.g. USA, Germany" class="field" required>`
+                        }
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Origin Port / Hub</label>
+                        ${isExport
+                            ? `<input type="text" id="originPort" value="${shipmentData.originPort || ''}" placeholder="e.g. Ahmedabad, JNPT" class="field" required>`
+                            : `<input type="text" id="originPort" value="${shipmentData.originPort}" placeholder="e.g. JFK, Hamburg" class="field" required>`
+                        }
+                    </div>
+                    <!-- Destination Country -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Destination Country</label>
+                        ${!isExport
+                            ? `<div class="field bg-orange-50 border-orange-200 flex items-center gap-2 font-semibold text-orange-700">
+                                <span class="w-5 h-5 rounded-full bg-orange-500 text-white text-[9px] font-black flex items-center justify-center flex-shrink-0">IN</span>
+                                India <span class="text-orange-400 text-[10px] font-normal ml-auto">Auto-set</span>
+                               </div>
+                               <input type="hidden" id="destCountry" value="India">`
+                            : `<input type="text" id="destCountry" value="${shipmentData.destCountry}" placeholder="e.g. USA, Germany" class="field" required>`
+                        }
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Destination Port / Hub</label>
+                        ${!isExport
+                            ? `<input type="text" id="destPort" value="${shipmentData.destPort || ''}" placeholder="e.g. Mumbai, Chennai" class="field" required>`
+                            : `<input type="text" id="destPort" value="${shipmentData.destPort}" placeholder="e.g. JFK, Hamburg" class="field" required>`
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- ④ TRANSPORT METHOD -->
+            <div class="card overflow-hidden">
+                <div class="px-5 pt-5 pb-3 border-b border-slate-100">
+                    <div class="sec-header border-0 pb-0 mb-0"><i class="fas fa-route"></i> Transport Method</div>
+                </div>
+                <div class="grid grid-cols-2">
+                    <!-- AIR tile -->
+                    <button type="button" onclick="setTransportMode('air')" id="mode-air"
+                        class="relative flex flex-col items-center gap-2 py-5 px-4 border-r border-slate-100 transition
+                               ${isAir ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}">
+                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm
+                                    ${isAir ? 'bg-blue-600' : 'bg-slate-100'}">
+                            <i class="fas fa-plane text-xl ${isAir ? 'text-white' : 'text-slate-400'}"></i>
+                        </div>
+                        <p class="font-bold text-sm ${isAir ? 'text-blue-700' : 'text-slate-600'}">Air Freight</p>
+                        <p class="text-[10px] ${isAir ? 'text-blue-500' : 'text-slate-400'}">⚡ 3–7 Days · Premium Express</p>
+                        ${isAir ? '<div class="absolute top-3 right-3 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center"><i class="fas fa-check text-white text-xs"></i></div>' : ''}
+                    </button>
+                    <!-- SEA tile -->
+                    <button type="button" onclick="setTransportMode('sea')" id="mode-sea"
+                        class="relative flex flex-col items-center gap-2 py-5 px-4 transition
+                               ${!isAir ? 'bg-cyan-50' : 'bg-white hover:bg-slate-50'}">
+                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm
+                                    ${!isAir ? 'bg-cyan-600' : 'bg-slate-100'}">
+                            <i class="fas fa-ship text-xl ${!isAir ? 'text-white' : 'text-slate-400'}"></i>
+                        </div>
+                        <p class="font-bold text-sm ${!isAir ? 'text-cyan-700' : 'text-slate-600'}">Ocean Freight</p>
+                        <p class="text-[10px] ${!isAir ? 'text-cyan-500' : 'text-slate-400'}">🚢 15–40 Days · Economy</p>
+                        ${!isAir ? '<div class="absolute top-3 right-3 w-5 h-5 bg-cyan-600 rounded-full flex items-center justify-center"><i class="fas fa-check text-white text-xs"></i></div>' : ''}
+                    </button>
+                </div>
+            </div>
+
+            <!-- ⑤ CLIENT & BILLING -->
+            <div class="card p-5 space-y-4">
+                <div class="sec-header"><i class="fas fa-user-tie"></i> Client & Billing Details</div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Bill To <span class="text-rose-400">*</span></label>
+                        <select id="billTo" class="field">
+                            <option value="Shipper" ${shipmentData.billTo === 'Shipper' ? 'selected' : ''}>Shipper (Client)</option>
+                            <option value="Consignee" ${shipmentData.billTo === 'Consignee' ? 'selected' : ''}>Consignee (Client)</option>
+                            <option value="Third-Party" ${shipmentData.billTo === 'Third-Party' ? 'selected' : ''}>Third-Party Agent</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Shipper Name (Client) <span class="text-rose-400">*</span></label>
+                        <input type="text" id="shipperName" value="${shipmentData.shipperName}"
+                            placeholder="Enter full shipper / exporter name" class="field" required>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Consignee <span class="text-rose-400">*</span></label>
+                        <input type="text" id="consignee" value="${shipmentData.consignee}"
+                            placeholder="Enter full consignee / importer name" class="field" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ⑥⑦⑧ CARRIER, NATURE & CLEARANCE -->
+            <div class="card p-5 space-y-5" id="carrierNatureCard">
+                <div class="sec-header"><i class="fas fa-truck-loading"></i> Carrier, Nature of Shipment & Clearance</div>
+
+                <!-- Nature first (drives carrier restrictions) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Nature of Shipment <span class="text-rose-400">*</span></label>
+                        <select id="nature" onchange="updateNatureState()" class="field">
+                            ${buildNatureOptions(shipmentData.transportMode, shipmentData.nature)}
+                        </select>
+                        <p id="nature-restriction-msg" class="text-[10px] text-amber-600 font-semibold hidden">
+                            ⚠ Sample / Only Document: Air only · UPS, DHL or FedEx only
+                        </p>
+                    </div>
+                    <!-- Clearance Vendor (hidden for Sample / Only Document) -->
+                    <div id="clearanceVendorContainer" class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Clearance Vendor / Broker <span class="text-rose-400">*</span></label>
+                        <input type="text" id="clearanceVendor" value="${shipmentData.clearanceVendor}"
+                            oninput="onVendorFieldChange()"
+                            placeholder="CHA / CHB broker name" class="field">
+                    </div>
+                </div>
+
+                <!-- Carrier + Service + Waybills -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Carrier <span class="text-rose-400">*</span></label>
+                        <select id="carrier" onchange="onCarrierChange()" class="field"></select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Service / Product <span class="text-rose-400">*</span></label>
+                        <select id="service" class="field"></select>
+                    </div>
+                </div>
+
+                <!-- Carrier Vendor Name -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-semibold text-slate-600">Carrier Vendor Name <span class="text-[10px] text-slate-400 font-normal">(agent / sub-contractor handling this carrier)</span></label>
+                    <input type="text" id="purchaseVendor" value="${shipmentData.purchaseVendor || ''}"
+                        oninput="onVendorFieldChange()"
+                        placeholder="e.g. Blue Dart, Geodis, XYZ Freight Pvt Ltd" class="field">
+                </div>
+
+                <!-- Waybills row — visible only for Commercial / Pan Card Clearance -->
+                <div id="waybillSection" class="${['Commercial','Pan Card Clearance'].includes(shipmentData.nature) ? '' : 'hidden'} space-y-4 pt-2 border-t border-slate-100">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-file-alt text-blue-400"></i> Waybill Numbers & Document Uploads
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- MAWB -->
+                        <div class="space-y-2 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <label class="text-xs font-bold text-slate-700">Master Waybill (MAWB / MBL)</label>
+                            <input type="text" id="mawb" value="${shipmentData.mawb}" placeholder="e.g. 176-12345678" class="field mono">
+                            <div class="pt-1">
+                                <p class="text-[10px] text-slate-500 font-semibold mb-1">Attach MAWB / MBL Document</p>
+                                <input type="file" id="mawbFile" accept=".pdf,.png,.jpg,.jpeg"
+                                    class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+                                <p id="mawbFileName" class="text-[10px] text-emerald-600 font-semibold mt-1 hidden flex items-center gap-1">
+                                    <i class="fas fa-check-circle"></i> <span id="mawbFileNameText"></span>
+                                </p>
+                            </div>
+                        </div>
+                        <!-- HAWB -->
+                        <div class="space-y-2 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <label class="text-xs font-bold text-slate-700">House Waybill (HAWB / HBL)</label>
+                            <input type="text" id="hawb" value="${shipmentData.hawb}" placeholder="e.g. BLX-2024-001" class="field mono">
+                            <div class="pt-1">
+                                <p class="text-[10px] text-slate-500 font-semibold mb-1">Attach HAWB / HBL Document</p>
+                                <input type="file" id="hawbFile" accept=".pdf,.png,.jpg,.jpeg"
+                                    class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+                                <p id="hawbFileName" class="text-[10px] text-emerald-600 font-semibold mt-1 hidden flex items-center gap-1">
+                                    <i class="fas fa-check-circle"></i> <span id="hawbFileNameText"></span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FINANCIAL COMPLIANCE — visible for Commercial, Pan Card Clearance, Sample only -->
+            <div id="financialComplianceCard" class="card p-5 space-y-5 ${['Commercial','Pan Card Clearance','Sample','CSB5'].includes(shipmentData.nature) ? '' : 'hidden'}">
+                <div class="sec-header"><i class="fas fa-file-invoice-dollar"></i> Financial Valuation & Compliance</div>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Customer Invoice Number <span class="text-rose-400">*</span></label>
+                        <input type="text" id="customerInvoiceNo" value="${shipmentData.customerInvoiceNo}" class="field" required>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Invoice Date <span class="text-rose-400">*</span></label>
+                        <input type="date" id="customerInvoiceDate" value="${shipmentData.customerInvoiceDate}" class="field" required>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">
+                            Declared Value <span class="text-rose-400">*</span>
+                            <span id="sampleLimitLabel" class="${shipmentData.nature === 'Sample' ? '' : 'hidden'} text-amber-600 font-bold ml-1">
+                                — Max: INR 25,000 (≈ <span id="sampleMaxForeign"></span>)
+                            </span>
+                        </label>
+                        <input type="number" id="invoiceTotalValue" value="${shipmentData.invoiceTotalValue}"
+                            oninput="evaluateValueTriggers()" class="field" required>
+                        <div id="inrEquivalentDisplay" class="hidden">
+                            <p class="text-[10px] text-slate-500 mt-1">
+                                INR Equivalent: <span id="inrEquivalentValue" class="font-bold text-slate-700"></span>
+                                <span id="sampleLimitExceeded" class="text-rose-600 font-bold hidden"> — ⛔ Exceeds INR 25,000 limit</span>
+                                <span id="sampleLimitOK"       class="text-emerald-600 font-bold hidden"> — ✅ Within INR 25,000 limit</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Currency</label>
+                        <select id="invoiceCurrency" onchange="evaluateValueTriggers()" class="field">
+                            <option value="USD" ${shipmentData.invoiceCurrency==='USD'?'selected':''}>USD – US Dollar</option>
+                            <option value="INR" ${shipmentData.invoiceCurrency==='INR'?'selected':''}>INR – Indian Rupee</option>
+                            <option value="EUR" ${shipmentData.invoiceCurrency==='EUR'?'selected':''}>EUR – Euro</option>
+                            <option value="AED" ${shipmentData.invoiceCurrency==='AED'?'selected':''}>AED – UAE Dirham</option>
+                            <option value="GBP" ${shipmentData.invoiceCurrency==='GBP'?'selected':''}>GBP – Pound Sterling</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Exchange Rate (to INR)</label>
+                        <input type="number" step="0.01" id="exchangeRate" value="${shipmentData.exchangeRate}" oninput="evaluateValueTriggers()" class="field">
+                    </div>
+                </div>
+                <div id="sampleWarning" class="warn-box warn-amber hidden">
+                    <i class="fas fa-exclamation-triangle text-amber-500 text-base mt-0.5"></i>
+                    <div><p class="font-semibold text-amber-900">Sample Value Limit Exceeded</p><p class="mt-0.5 text-amber-700">Sample shipments may not exceed INR 25,000 equivalent. Please review declared value.</p></div>
+                </div>
+                <div id="ewabWarning" class="warn-box warn-blue hidden">
+                    <i class="fas fa-info-circle text-blue-500 text-base mt-0.5"></i>
+                    <div><p class="font-semibold">E-Way Bill Required</p><p class="mt-0.5 text-blue-700">Total value exceeds INR 50,000. An E-Way Bill must accompany this consignment.</p></div>
+                </div>
+                <div id="ewabUploadContainer" class="p-4 bg-slate-50 border border-slate-200 rounded-xl hidden space-y-2">
+                    <label class="text-xs font-bold text-slate-700">Attach E-Way Bill Document</label>
+                    <input type="file" id="ewabFile" accept=".pdf,.png,.jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <!-- SB/BE — visible only for Commercial, CSB5, Pan Card Clearance -->
+                <div id="sbSection" class="${['Commercial','CSB5','Pan Card Clearance'].includes(shipmentData.nature) ? '' : 'hidden'} grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">SB / BE Number</label>
+                        <input type="text" id="sbNumber" value="${shipmentData.sbNumber}" placeholder="e.g. SB123456 / BE789012" class="field mono">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">SB / BE Date</label>
+                        <input type="date" id="sbDate" value="${shipmentData.sbDate}" class="field">
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMPLIANCE DOCUMENTS — right after Financial -->
+            <div class="card p-5 space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <div class="sec-header mb-0 border-0 pb-0"><i class="fas fa-file-upload"></i> Compliance Documents</div>
+                    <button type="button" onclick="addNewComplianceDocRow()" class="px-4 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg border border-blue-200 transition flex items-center gap-1.5">
+                        <i class="fas fa-plus"></i> Add Document
+                    </button>
+                </div>
+                <p class="text-[10px] text-slate-400 italic">Upload shipment documents: Packing List, COO, BOE, Insurance, etc.</p>
+                <div id="complianceDocsList" class="space-y-3"></div>
+            </div>
+
+            <!-- PACKAGES -->
+            <div class="card p-5 space-y-4">
+                <!-- Header -->
+                <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <i class="fas fa-boxes text-blue-500 text-sm"></i>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Dimension & Package Configuration</p>
+                    <span class="ml-auto text-[10px] text-slate-400 italic">Use "+ Add Package" button below to add rows</span>
+                </div>
+
+                <!-- DIM formula banner (Air + Express carriers only) -->
+                <div id="dimFormulaNote" class="${EXPRESS_CARRIERS.includes(shipmentData.carrier) && shipmentData.transportMode === 'air' ? '' : 'hidden'} flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs">
+                    <i class="fas fa-calculator text-blue-500 mt-0.5 flex-shrink-0"></i>
+                    <div class="text-blue-800">
+                        <p class="font-bold">Express Carrier DIM Weight Applied (UPS / DHL / FedEx)</p>
+                        <p class="mt-0.5 text-blue-600">DIM Wt (kg) = (L × W × H in cm) ÷ 5000 &nbsp;|&nbsp; Billable Wt = max(Gross Wt, DIM Wt)</p>
+                        <p class="mt-0.5 text-blue-400 text-[10px]">Inches auto-converted to cm before calculation.</p>
+                    </div>
+                </div>
+
+                <!-- Sea direct CBM entry banner -->
+                <div id="seaCbmNote" class="${shipmentData.transportMode === 'sea' ? '' : 'hidden'} flex items-start gap-3 p-3 bg-cyan-50 border border-cyan-200 rounded-xl text-xs">
+                    <i class="fas fa-ship text-cyan-500 mt-0.5 flex-shrink-0"></i>
+                    <div class="text-cyan-800">
+                        <p class="font-bold">Ocean Freight — CBM Entry</p>
+                        <p class="mt-0.5 text-cyan-600">You may enter dimensions to auto-calculate CBM, <strong>or</strong> type the CBM directly in the CBM field if you don't have individual dimensions.</p>
+                    </div>
+                </div>
+
+                <!-- Package table -->
+                <div class="overflow-x-auto">
+                    <table class="data-table w-full" id="pkgTable" style="min-width:${shipmentData.transportMode === 'sea' ? '960' : '1100'}px">
+                        <thead>
+                            <tr class="bg-blue-600 text-white text-[10px] uppercase font-bold tracking-wide">
+                                <th class="px-2 py-2.5 text-center rounded-tl-lg" style="width:38px">#</th>
+                                <th class="px-2 py-2.5 text-left" style="min-width:130px">Goods Description</th>
+                                <th class="px-2 py-2.5 text-left" style="min-width:100px">HS / HTS Code</th>
+                                <th class="px-2 py-2.5 text-center" style="width:70px">No. of<br><span class="font-normal normal-case text-blue-200" style="font-size:9px">Boxes / Pkg</span></th>
+                                <th class="px-2 py-2.5 text-center" style="width:72px">L</th>
+                                <th class="px-2 py-2.5 text-center" style="width:72px">W</th>
+                                <th class="px-2 py-2.5 text-center" style="width:72px">H</th>
+                                <th class="px-2 py-2.5 text-center" style="width:76px">Unit</th>
+                                <th class="px-2 py-2.5 text-center" style="width:92px">Gross Wt<br>(kg)</th>
+                                <th class="px-2 py-2.5 text-center" style="min-width:130px">Packing Type</th>
+                                ${shipmentData.transportMode === 'sea'
+                                    ? `<th class="px-2 py-2.5 text-center" style="width:100px">CBM (m³)</th>
+                                       <th class="px-2 py-2.5 text-center rounded-tr-lg" style="width:68px">Action</th>`
+                                    : `<th class="px-2 py-2.5 text-center" id="dimColHead" style="width:96px">${EXPRESS_CARRIERS.includes(shipmentData.carrier) ? 'DIM Wt<br>(kg)' : 'Vol. Wt<br>(kg)'}</th>
+                                       <th class="px-2 py-2.5 text-center" style="width:96px">Billable Wt<br>(kg)</th>
+                                       <th class="px-2 py-2.5 text-center rounded-tr-lg" style="width:68px">Action</th>`
+                                }
+                            </tr>
+                        </thead>
+                        <tbody id="packagesBody"></tbody>
+                        <tfoot>
+                            <tr class="bg-slate-50 border-t-2 border-slate-200 text-xs font-bold">
+                                <td colspan="8" class="px-3 py-2.5 text-right text-slate-500">Totals:</td>
+                                <td class="px-2 py-2.5 text-center text-slate-800 mono" id="totalGrossWt">—</td>
+                                <td class="px-2 py-2.5"></td>
+                                ${shipmentData.transportMode === 'sea'
+                                    ? `<td class="px-2 py-2.5 text-center text-cyan-700 mono font-extrabold" id="totalVolWt">—</td>
+                                       <td></td>`
+                                    : `<td class="px-2 py-2.5 text-center text-blue-700 mono" id="totalVolWt">—</td>
+                                       <td class="px-2 py-2.5 text-center text-emerald-700 mono font-extrabold" id="totalChargeable">—</td>
+                                       <td></td>`
+                                }
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Dashed + Add Package button -->
+                <button type="button" onclick="addNewPackageRow()"
+                    class="w-full py-2.5 border-2 border-dashed border-blue-300 hover:border-blue-500 hover:bg-blue-50 rounded-xl text-xs font-semibold text-blue-500 hover:text-blue-700 transition flex items-center justify-center gap-2">
+                    <i class="fas fa-plus-circle"></i> + Add Package
+                </button>
+            </div>
+
+            <!-- OTHER SERVICES -->
+            <div class="card p-5 space-y-5">
+                <div class="sec-header"><i class="fas fa-concierge-bell"></i> Other Services for This Shipment</div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Service</label>
+                        <select id="otherSvcSelector" class="field">
+                            <option value="">-- Select Service --</option>
+                            <option value="Pick up Charge">Pick up Charge</option>
+                            <option value="Delivery Charge">Delivery Charge</option>
+                            <option value="Cargo Insurance">Cargo Insurance</option>
+                            <option value="Warehousing & Last-Mile Delivery">Warehousing & Last-Mile Delivery</option>
+                            <option value="DO Charge">DO Charge</option>
+                            <option value="Documentation Charge">Documentation Charge</option>
+                            <option value="Certificate of Origin">Certificate of Origin</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Dangerous Goods Handling">Dangerous Goods Handling</option>
+                            <option value="Time-Bound Shipments">Time-Bound Shipments</option>
+                            <option value="Temperature-Sensitive Cargo">Temperature-Sensitive Cargo</option>
+                            <option value="Packaging Services">Packaging Services</option>
+                            <option value="Palletization Services">Palletization Services</option>
+                            <option value="Ad Code Registration">Ad Code Registration</option>
+                            <option value="Industry Expert Solutions">Industry Expert Solutions</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-600">Vendor Name</label>
+                        <input type="text" id="otherSvcVendor" placeholder="Vendor / partner name" class="field">
+                    </div>
+                    <button type="button" onclick="addOtherService()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2">
+                        <i class="fas fa-plus"></i> Add Service
+                    </button>
+                </div>
+                <div id="otherServicesList" class="space-y-2"></div>
+            </div>
+
+            <!-- FINANCIAL SUMMARY — Sales / Cost mapping for profitability -->
+            <div class="card p-5 space-y-5">
+                <div class="sec-header"><i class="fas fa-chart-line"></i> Financial Summary — Revenue & Cost Mapping</div>
+                <p class="text-[10px] text-slate-400 italic -mt-2">
+                    Vendors below are auto-pulled from your booking selections (Clearance Vendor, Carrier Vendor, Other Services Vendors).
+                    Add line items to track which vendor delivered which service and at what cost/revenue.
+                </p>
+
+                <!-- Vendor snapshot chips (read-only, pulled from booking) -->
+                <div id="vendorSnapshot" class="flex flex-wrap gap-2"></div>
+
+                <!-- SALE ITEMS (REVENUE) — structured by Transport Method → Category → Charge Head -->
+                <div class="space-y-3 pt-2">
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs font-bold text-emerald-700 flex items-center gap-2">
+                            <i class="fas fa-arrow-trend-up"></i> Sale Items (Revenue)
+                        </p>
+                        <span class="text-[10px] text-slate-400 italic">Category auto-syncs to this shipment's Transport Method (${shipmentData.transportMode === 'air' ? 'Air Freight' : 'Ocean Freight'})</span>
+                    </div>
+                    <!-- Add sale item row -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Category</label>
+                            <select id="saleCategory" onchange="onSaleCategoryChange()" class="field text-xs"></select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Charge Head</label>
+                            <select id="saleChargeHead" onchange="onSaleHeadChange()" class="field text-xs"></select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">SAC Code (auto)</label>
+                            <input type="text" id="saleSacCode" class="field text-xs mono bg-slate-100" readonly>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-7 gap-2 items-end bg-emerald-50 p-3 rounded-xl border border-emerald-100 -mt-1">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Unit Type</label>
+                            <select id="saleUnitType" class="field text-xs">
+                                <option value="Fix">Fix</option>
+                                <option value="Per Kg">Per Kg</option>
+                                <option value="Per CBM">Per CBM</option>
+                                <option value="Per Shipment">Per Shipment</option>
+                                <option value="Per Package">Per Package</option>
+                                <option value="Per Day">Per Day</option>
+                                <option value="Per Container">Per Container</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Qty</label>
+                            <input type="number" id="saleQty" placeholder="1" step="0.01" class="field text-xs">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Rate</label>
+                            <input type="number" id="saleRate" placeholder="0.00" step="0.01" class="field text-xs">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Currency</label>
+                            <select id="saleCurrency" onchange="onSaleCurrencyChange()" class="field text-xs">
+                                <option value="INR">INR</option><option value="USD">USD</option>
+                                <option value="EUR">EUR</option><option value="AED">AED</option><option value="GBP">GBP</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1" id="saleExRateContainer" style="display:none">
+                            <label class="text-[10px] font-semibold text-slate-500">Exchange Rate (→INR)</label>
+                            <input type="number" id="saleExRate" placeholder="e.g. 83.20" step="0.0001" class="field text-xs">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Tax Rate % (auto)</label>
+                            <input type="number" id="saleTaxRate" placeholder="18" step="0.01" class="field text-xs bg-slate-100">
+                        </div>
+                        <button type="button" onclick="addSaleItem()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5">
+                            <i class="fas fa-plus"></i> Add Sale
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="data-table" style="min-width:900px">
+                            <thead><tr class="bg-emerald-600 text-white text-[10px] uppercase">
+                                <th class="px-2 py-2 text-left">Category</th>
+                                <th class="px-2 py-2 text-left">Charge Head</th>
+                                <th class="px-2 py-2 text-center">SAC</th>
+                                <th class="px-2 py-2 text-center">Unit Type</th>
+                                <th class="px-2 py-2 text-center">Qty</th>
+                                <th class="px-2 py-2 text-center">Rate</th>
+                                <th class="px-2 py-2 text-center">Amount</th>
+                                <th class="px-2 py-2 text-center">Ex. Rate</th>
+                                <th class="px-2 py-2 text-center">Tax</th>
+                                <th class="px-2 py-2 text-center">Total (INR)</th>
+                                <th class="px-2 py-2 text-center">Action</th>
+                            </tr></thead>
+                            <tbody id="saleItemsBody"></tbody>
+                            <tfoot><tr class="bg-emerald-50 font-bold text-xs">
+                                <td colspan="9" class="px-2 py-2 text-right text-slate-500">Total Revenue (INR):</td>
+                                <td class="px-2 py-2 text-center text-emerald-700 mono" id="totalRevenueDisplay">₹0.00</td>
+                                <td></td>
+                            </tr></tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- PURCHASE ITEMS (COSTS) -->
+                <div class="space-y-3 pt-2 border-t border-slate-100">
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs font-bold text-rose-700 flex items-center gap-2">
+                            <i class="fas fa-arrow-trend-down"></i> Purchase Items (Costs)
+                        </p>
+                    </div>
+                    <!-- Add purchase item row -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-2 bg-rose-50 p-3 rounded-xl border border-rose-100">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Vendor</label>
+                            <select id="purchaseVendorSelect" class="field text-xs">
+                                <option value="">-- Select Vendor --</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Description</label>
+                            <input type="text" id="purchaseDesc" placeholder="e.g. FREIGHT CHARGE" class="field text-xs">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Unit Type</label>
+                            <select id="purchaseUnitType" class="field text-xs">
+                                <option value="Fix">Fix</option>
+                                <option value="Per Kg">Per Kg</option>
+                                <option value="Per CBM">Per CBM</option>
+                                <option value="Per Shipment">Per Shipment</option>
+                                <option value="Per Package">Per Package</option>
+                                <option value="Per Day">Per Day</option>
+                                <option value="Per Container">Per Container</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Currency</label>
+                            <select id="purchaseCurrency" onchange="onPurchaseCurrencyChange()" class="field text-xs">
+                                <option value="INR">INR</option><option value="USD">USD</option>
+                                <option value="EUR">EUR</option><option value="AED">AED</option><option value="GBP">GBP</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-2 items-end bg-rose-50 p-3 rounded-xl border border-rose-100 -mt-1">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Qty</label>
+                            <input type="number" id="purchaseQty" placeholder="1" step="0.01" class="field text-xs">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Rate</label>
+                            <input type="number" id="purchaseRate" placeholder="0.00" step="0.01" class="field text-xs">
+                        </div>
+                        <div class="space-y-1" id="purchaseExRateContainer" style="display:none">
+                            <label class="text-[10px] font-semibold text-slate-500">Exchange Rate (→INR)</label>
+                            <input type="number" id="purchaseExRate" placeholder="e.g. 83.20" step="0.0001" class="field text-xs">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-semibold text-slate-500">Tax Rate %</label>
+                            <input type="number" id="purchaseTaxRate" placeholder="18" step="0.01" class="field text-xs">
+                        </div>
+                        <button type="button" onclick="addPurchaseItem()" class="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5">
+                            <i class="fas fa-plus"></i> Add Cost
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="data-table" style="min-width:840px">
+                            <thead><tr class="bg-rose-600 text-white text-[10px] uppercase">
+                                <th class="px-2 py-2 text-left">Vendor</th>
+                                <th class="px-2 py-2 text-left">Description</th>
+                                <th class="px-2 py-2 text-center">Unit Type</th>
+                                <th class="px-2 py-2 text-center">Qty</th>
+                                <th class="px-2 py-2 text-center">Rate</th>
+                                <th class="px-2 py-2 text-center">Amount</th>
+                                <th class="px-2 py-2 text-center">Ex. Rate</th>
+                                <th class="px-2 py-2 text-center">Tax</th>
+                                <th class="px-2 py-2 text-center">Total (INR)</th>
+                                <th class="px-2 py-2 text-center">Action</th>
+                            </tr></thead>
+                            <tbody id="purchaseItemsBody"></tbody>
+                            <tfoot><tr class="bg-rose-50 font-bold text-xs">
+                                <td colspan="8" class="px-2 py-2 text-right text-slate-500">Total Cost (INR):</td>
+                                <td class="px-2 py-2 text-center text-rose-700 mono" id="totalCostDisplay">₹0.00</td>
+                                <td></td>
+                            </tr></tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- PROFITABILITY SUMMARY -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
+                    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
+                        <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Total Revenue</p>
+                        <p class="text-lg font-extrabold text-emerald-700 mono" id="finTotalRevenue">₹0.00</p>
+                    </div>
+                    <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl text-center">
+                        <p class="text-[10px] font-bold text-rose-600 uppercase tracking-wide">Total Cost</p>
+                        <p class="text-lg font-extrabold text-rose-700 mono" id="finTotalCost">₹0.00</p>
+                    </div>
+                    <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl text-center">
+                        <p class="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Profit / Loss</p>
+                        <p class="text-lg font-extrabold text-blue-700 mono" id="finProfitLoss">₹0.00</p>
+                    </div>
+                    <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-center">
+                        <p class="text-[10px] font-bold text-indigo-600 uppercase tracking-wide">Profit Margin</p>
+                        <p class="text-lg font-extrabold text-indigo-700 mono" id="finProfitMargin">0.00%</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REMARKS & SUBMIT -->
+            <div class="card p-5 space-y-4">
+                <div class="sec-header"><i class="far fa-comment-alt"></i> Remarks & Operational Notes</div>
+                <textarea id="remarks" rows="3" class="field resize-none" placeholder="Internal routing remarks, special instructions...">${shipmentData.remarks}</textarea>
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="clearFormData()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition">
+                        <i class="fas fa-undo text-xs mr-1"></i> Clear Form
+                    </button>
+                    <button type="submit" class="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center gap-2">
+                        <i class="fas fa-save"></i> Save Shipment
+                    </button>
+                </div>
+            </div>
+        </form>
+    `;
+
+    // Post-render setup
+    _initBookingDateDisplay();
+    buildCarrierDropdowns();
+    updateNatureState();
+    renderPackageList();
+    renderComplianceDocs();
+    renderOtherServices();
+    renderVendorSnapshot();
+    populatePurchaseVendorDropdown();
+    populateSaleCategoryDropdown();
+    renderSaleItems();
+    renderPurchaseItems();
+
+    // Waybill file name display handlers
+    ['mawb', 'hawb'].forEach(prefix => {
+        const fileInput = document.getElementById(prefix + 'File');
+        if (fileInput) {
+            fileInput.addEventListener('change', function() {
+                const nameEl  = document.getElementById(prefix + 'FileName');
+                const textEl  = document.getElementById(prefix + 'FileNameText');
+                if (this.files.length > 0) {
+                    if (textEl) textEl.textContent = this.files[0].name;
+                    if (nameEl) nameEl.classList.remove('hidden');
+                    shipmentData[prefix + 'FileName'] = this.files[0].name;
+                }
+            });
+        }
+    });
+}
+
+function field(label, id, value, type = 'text', required = false, extraClass = '') {
+    return `
+        <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-slate-600">${label}</label>
+            <input type="${type}" id="${id}" value="${value}" class="field ${extraClass}" ${required ? 'required' : ''}>
+        </div>
+    `;
+}
+
+// ══════════════════════════════════════ DIRECTION / MODE / NATURE / CARRIER ══════════════════════════════════════
+
+function _initBookingDateDisplay() {
+    const input = document.getElementById('bookingDate');
+    const disp  = document.getElementById('bookingDateDisplay');
+    if (!input || !disp) return;
+    function update() {
+        const d = new Date(input.value + 'T00:00:00');
+        if (!isNaN(d)) disp.textContent = d.toLocaleDateString('en-IN', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+    }
+    input.addEventListener('change', update);
+    update();
+}
+
+function setDirection(dir) {
+    shipmentData.direction = dir;
+    // Full re-render so India-fixed fields update correctly
+    renderShipmentForm(document.getElementById('main-content-area'));
+}
+
+function setTransportMode(mode) {
+    // Enforce: Sample / Only Document → air only
+    const restriction = natureModeRestrictions[shipmentData.nature];
+    if (restriction && !restriction.modes.includes(mode)) {
+        showToast('⚠ "' + shipmentData.nature + '" is only available via Air freight. Keeping Air selected.', true);
+        return;
+    }
+    shipmentData.transportMode = mode;
+    // If current nature is not available for the new mode, reset to first valid option
+    const validNatures = (naturesByMode[mode] || []).map(n => n.value);
+    if (!validNatures.includes(shipmentData.nature)) {
+        shipmentData.nature = validNatures[0] || 'Commercial';
+    }
+    renderShipmentForm(document.getElementById('main-content-area'));
+}
+
+// Which natures are available per transport mode
+const naturesByMode = {
+    air: [
+        { value: "Commercial",       label: "Commercial" },
+        { value: "Sample",           label: "Sample (Free Goods)" },
+        { value: "CSB5",             label: "CSB5" },
+        { value: "Pan Card Clearance", label: "Pan Card Clearance" },
+        { value: "Only Document",    label: "Only Document" }
+    ],
+    sea: [
+        { value: "Commercial",         label: "Commercial" },
+        { value: "Pan Card Clearance", label: "Pan Card Clearance" }
+    ]
+};
+
+function buildNatureOptions(mode, selected) {
+    const list = naturesByMode[mode] || naturesByMode['air'];
+    return list.map(n =>
+        `<option value="${n.value}" ${selected === n.value ? 'selected' : ''}>${n.label}</option>`
+    ).join('');
+}
+
+function updateNatureState() {
+    const natureEl = document.getElementById('nature');
+    if (!natureEl) return;
+    const nature = natureEl.value;
+    shipmentData.nature = nature;
+
+    const restriction = natureModeRestrictions[nature];
+
+    // Sample / Only Document → force Air, restrict carriers
+    if (restriction) {
+        if (shipmentData.transportMode !== 'air') {
+            shipmentData.transportMode = 'air';
+        }
+        document.getElementById('mode-sea')?.setAttribute('disabled', 'disabled');
+        document.getElementById('nature-restriction-msg')?.classList.remove('hidden');
+    } else {
+        document.getElementById('mode-sea')?.removeAttribute('disabled');
+        document.getElementById('nature-restriction-msg')?.classList.add('hidden');
+    }
+
+    // Show/hide clearance vendor (not needed for Sample / Only Document)
+    const cvContainer = document.getElementById('clearanceVendorContainer');
+    if (cvContainer) {
+        const needsVendor = naturesNeedingClearance.includes(nature);
+        cvContainer.classList.toggle('hidden', !needsVendor);
+    }
+
+    buildCarrierDropdowns();
+    evaluateValueTriggers();
+
+    if (typeof renderVendorSnapshot === 'function') renderVendorSnapshot();
+    if (typeof populatePurchaseVendorDropdown === 'function') populatePurchaseVendorDropdown();
+}
+
+function buildCarrierDropdowns() {
+    const carrierSel = document.getElementById('carrier');
+    const serviceSel = document.getElementById('service');
+    if (!carrierSel || !serviceSel) return;
+
+    const restriction  = natureModeRestrictions[shipmentData.nature];
+    const modeOptions  = carrierOptionsFull[shipmentData.transportMode] || carrierOptionsFull['air'];
+    let   allowedCarriers = modeOptions.carriers;
+
+    // Apply nature restriction to carrier list
+    if (restriction && restriction.carriers) {
+        allowedCarriers = allowedCarriers.filter(c => restriction.carriers.includes(c));
+    }
+
+    // Preserve selection if still valid, else reset
+    if (!allowedCarriers.includes(shipmentData.carrier)) shipmentData.carrier = allowedCarriers[0] || '';
+
+    carrierSel.innerHTML = allowedCarriers.map(c =>
+        `<option value="${c}" ${shipmentData.carrier === c ? 'selected' : ''}>${c === 'FF' ? 'FF (Freight Forwarder)' : c}</option>`
+    ).join('');
+
+    onCarrierChange();
+}
+
+function onCarrierChange() {
+    const carrierSel = document.getElementById('carrier');
+    const serviceSel = document.getElementById('service');
+    if (!carrierSel || !serviceSel) return;
+    shipmentData.carrier = carrierSel.value;
+    const modeServices = carrierOptionsFull[shipmentData.transportMode]?.services || {};
+    const services = modeServices[carrierSel.value] || [];
+    if (!services.includes(shipmentData.service)) shipmentData.service = services[0] || '';
+    serviceSel.innerHTML = services.map(s =>
+        `<option value="${s}" ${shipmentData.service === s ? 'selected' : ''}>${s}</option>`
+    ).join('');
+    shipmentData.service = serviceSel.value;
+
+    // Update DIM formula note + column header live when carrier changes
+    const isExpress = EXPRESS_CARRIERS.includes(shipmentData.carrier) && shipmentData.transportMode === 'air';
+    const dimNote   = document.getElementById('dimFormulaNote');
+    const seaNote   = document.getElementById('seaCbmNote');
+    if (dimNote) dimNote.classList.toggle('hidden', !isExpress);
+    if (seaNote) seaNote.classList.toggle('hidden', shipmentData.transportMode !== 'sea');
+    const dimHead   = document.getElementById('dimColHead');
+    if (dimHead) dimHead.innerHTML = isExpress ? 'DIM Wt<br>(kg)' : 'Vol. Wt<br>(kg)';
+    syncCalculations();
+
+    // Carrier name appears in vendor role labels — refresh snapshot/dropdown
+    if (typeof renderVendorSnapshot === 'function') renderVendorSnapshot();
+    if (typeof populatePurchaseVendorDropdown === 'function') populatePurchaseVendorDropdown();
+
+    // Carrier change can shift the recommended Revenue Head category (UPS/DHL/FedEx/Port-to-Port)
+    if (typeof populateSaleCategoryDropdown === 'function') populateSaleCategoryDropdown();
+}
+
+// ══════════════════════════════════════ PACKAGES ══════════════════════════════════════
+
+const PACKING_TYPES = [
+    'Wooden Pallet','Plastic Pallet','Corrugated Box','Wooden Crate',
+    'Drum','Bag','Bundle','Loose','Other'
+];
+
+function renderPackageList() {
+    const tbody = document.getElementById('packagesBody');
+    if (!tbody) return;
+    const isAir     = shipmentData.transportMode === 'air';
+    const isExpress = isAir && EXPRESS_CARRIERS.includes(shipmentData.carrier);
+    const isSea     = !isAir;
+
+    tbody.innerHTML = shipmentData.packages.map((pkg, idx) => `
+        <tr class="border-b border-slate-100 hover:bg-blue-50/30 transition text-xs" id="pkg-row-${idx}">
+
+            <!-- # -->
+            <td class="px-2 py-2 text-center font-bold text-slate-400 mono text-[11px]">${idx + 1}</td>
+
+            <!-- Goods Description -->
+            <td class="px-1 py-2">
+                <input type="text"
+                    oninput="updatePkgField(${idx},'goodsDesc',this.value)"
+                    value="${pkg.goodsDesc}"
+                    placeholder="Description..."
+                    class="field text-xs" style="min-width:105px" required>
+            </td>
+
+            <!-- HS/HTS Code -->
+            <td class="px-1 py-2">
+                <input type="text"
+                    oninput="updatePkgField(${idx},'hsCode',this.value)"
+                    value="${pkg.hsCode}"
+                    placeholder="HS Code"
+                    class="field text-xs mono" style="width:88px">
+            </td>
+
+            <!-- No. of Identical Boxes -->
+            <td class="px-1 py-2">
+                <input type="number" min="1" step="1"
+                    oninput="updatePkgField(${idx},'qty',this.value); syncCalculations();"
+                    value="${pkg.qty || 1}"
+                    class="field text-xs text-center font-semibold" style="width:62px">
+            </td>
+
+            <!-- L -->
+            <td class="px-1.5 py-2">
+                <input type="number" min="0" step="0.01"
+                    oninput="updatePkgDimension(${idx},'length',this.value)"
+                    value="${pkg.length || ''}"
+                    placeholder="0"
+                    class="field text-xs text-center" style="width:64px">
+            </td>
+
+            <!-- W -->
+            <td class="px-1.5 py-2">
+                <input type="number" min="0" step="0.01"
+                    oninput="updatePkgDimension(${idx},'width',this.value)"
+                    value="${pkg.width || ''}"
+                    placeholder="0"
+                    class="field text-xs text-center" style="width:64px">
+            </td>
+
+            <!-- H -->
+            <td class="px-1.5 py-2">
+                <input type="number" min="0" step="0.01"
+                    oninput="updatePkgDimension(${idx},'height',this.value)"
+                    value="${pkg.height || ''}"
+                    placeholder="0"
+                    class="field text-xs text-center" style="width:64px">
+            </td>
+
+            <!-- Unit -->
+            <td class="px-1.5 py-2">
+                <select onchange="updatePkgDimensionUnit(${idx},this.value)" class="field text-xs" style="width:70px">
+                    <option value="inches" ${pkg.unit==='inches'?'selected':''}>Inches</option>
+                    <option value="cm"     ${pkg.unit==='cm'    ?'selected':''}>cm</option>
+                </select>
+            </td>
+
+            <!-- Gross Wt (kg) -->
+            <td class="px-1 py-2">
+                <input type="number" min="0" step="0.01"
+                    oninput="updatePkgDimension(${idx},'weight',this.value)"
+                    value="${pkg.weight || ''}"
+                    placeholder="0"
+                    class="field text-xs text-center" style="width:82px" required>
+            </td>
+
+            <!-- Packing Type -->
+            <td class="px-1 py-2">
+                <select onchange="updatePkgField(${idx},'packingType',this.value)" class="field text-xs" style="min-width:110px">
+                    ${PACKING_TYPES.map(pt=>`<option value="${pt}" ${(pkg.packingType||'Wooden Pallet')===pt?'selected':''}>${pt}</option>`).join('')}
+                </select>
+            </td>
+
+            ${isSea ? `
+            <!-- SEA: CBM — auto-calculated OR direct entry -->
+            <td class="px-1 py-2">
+                <div class="flex flex-col gap-1 items-center">
+                    <input type="number" min="0" step="0.0001"
+                        oninput="updatePkgCbmDirect(${idx}, this.value)"
+                        value="${pkg.cbmDirect !== undefined ? pkg.cbmDirect : (pkg.cbm || '')}"
+                        placeholder="0.0000"
+                        class="field text-xs text-center mono ${pkg.cbmDirect !== undefined ? 'border-cyan-400 bg-cyan-50' : ''}"
+                        style="width:80px"
+                        title="Enter CBM directly, or leave blank to auto-calculate from dimensions">
+                    <span class="text-[9px] text-slate-400 leading-tight text-center">auto-calc<br>or direct</span>
+                </div>
+            </td>
+            <!-- SEA: Action -->
+            <td class="px-2 py-2 text-center">
+                <button type="button" onclick="removePackageRow(${idx})"
+                    class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-rose-500 hover:bg-rose-600 text-white transition shadow-sm">
+                    <i class="fas fa-trash-alt text-[10px]"></i>
+                </button>
+            </td>
+            ` : `
+            <!-- AIR: Vol/DIM Wt (calculated) -->
+            <td class="px-1 py-2 text-center">
+                <span class="font-bold mono text-blue-600 text-xs" id="pkg-vol-${idx}">—</span>
+            </td>
+            <!-- AIR: Billable Wt -->
+            <td class="px-1 py-2 text-center font-extrabold mono text-emerald-700 text-xs" id="pkg-chg-${idx}">—</td>
+            <!-- AIR: Action -->
+            <td class="px-2 py-2 text-center">
+                <button type="button" onclick="removePackageRow(${idx})"
+                    class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-rose-500 hover:bg-rose-600 text-white transition shadow-sm">
+                    <i class="fas fa-trash-alt text-[10px]"></i>
+                </button>
+            </td>
+            `}
+        </tr>
+    `).join('');
+    syncCalculations();
+}
+
+function addNewPackageRow() {
+    shipmentData.packages.push({ qty: 1, length: "", width: "", height: "", unit: "inches", weight: "", packingType: "Wooden Pallet", goodsDesc: "", hsCode: "" });
+    renderPackageList();
+}
+
+function removePackageRow(idx) {
+    if (shipmentData.packages.length <= 1) { showToast("At least one package is required.", true); return; }
+    shipmentData.packages.splice(idx, 1);
+    renderPackageList();
+}
+
+function updatePkgField(idx, field, value) { shipmentData.packages[idx][field] = value; }
+function updatePkgDimension(idx, field, value) { shipmentData.packages[idx][field] = parseFloat(value) || 0; syncCalculations(); }
+function updatePkgDimensionUnit(idx, value) { shipmentData.packages[idx].unit = value; syncCalculations(); }
+
+// ══════════════════════════════════════ VAS ══════════════════════════════════════
+
+function renderSelectedVasItems() {
+    const container = document.getElementById('vasAllocationList');
+    if (!container) return;
+    if (!shipmentData.selectedServices.length) {
+        container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-2">No value-added services allocated.</p>`;
+        return;
+    }
+    container.innerHTML = shipmentData.selectedServices.map((item, idx) => `
+        <div class="flex items-center justify-between p-3 border border-slate-100 bg-white rounded-xl shadow-sm text-xs">
+            <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold rounded-lg mono">${String(idx + 1).padStart(2, '0')}</span>
+                <div>
+                    <p class="font-semibold text-slate-800">${item.serviceName}</p>
+                    <p class="text-slate-400 text-[10px]">Vendor: ${item.vendor || 'In-House'}</p>
+                </div>
+            </div>
+            <button type="button" onclick="removeVasAllocation(${idx})" class="text-rose-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition">
+                <i class="far fa-trash-alt"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+function addCustomVasItem() {
+    const val = document.getElementById('vasSelector').value;
+    const vendor = document.getElementById('vasVendor').value;
+    if (!val) { showToast("Select a service from the list.", true); return; }
+    if (shipmentData.selectedServices.some(s => s.serviceName === val)) { showToast("Service already added.", true); return; }
+    shipmentData.selectedServices.push({ serviceName: val, vendor });
+    document.getElementById('vasVendor').value = "";
+    document.getElementById('vasSelector').value = "";
+    renderSelectedVasItems();
+    showToast("Service allocated successfully.");
+}
+
+function removeVasAllocation(idx) {
+    shipmentData.selectedServices.splice(idx, 1);
+    renderSelectedVasItems();
+}
+
+// ══════════════════════════════════════ OTHER SERVICES ══════════════════════════════════════
+
+function renderOtherServices() {
+    const container = document.getElementById('otherServicesList');
+    if (!container) return;
+    if (!shipmentData.otherServices || !shipmentData.otherServices.length) {
+        container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-2">No additional services added yet.</p>`;
+        return;
+    }
+    container.innerHTML = shipmentData.otherServices.map((svc, idx) => `
+        <div class="flex items-center justify-between p-3 border border-slate-100 bg-white rounded-xl shadow-sm text-xs">
+            <div class="flex items-center gap-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-slate-500 mono text-[10px] flex-shrink-0">${String(idx + 1).padStart(2,'0')}</span>
+                <div>
+                    <p class="font-semibold text-slate-800">${svc.serviceName}</p>
+                    <p class="text-slate-400 text-[10px] mt-0.5">Vendor: <span class="text-slate-600 font-medium">${svc.vendor || '—'}</span></p>
+                </div>
+            </div>
+            <button type="button" onclick="removeOtherService(${idx})"
+                class="text-rose-400 hover:text-rose-600 hover:bg-rose-50 p-1.5 rounded-lg transition flex-shrink-0">
+                <i class="far fa-trash-alt text-xs"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+function onVendorFieldChange() {
+    shipmentData.clearanceVendor = document.getElementById('clearanceVendor')?.value || '';
+    shipmentData.purchaseVendor  = document.getElementById('purchaseVendor')?.value  || '';
+    renderVendorSnapshot();
+    populatePurchaseVendorDropdown();
+}
+
+function addOtherService() {
+    const svc    = document.getElementById('otherSvcSelector')?.value;
+    const vendor = document.getElementById('otherSvcVendor')?.value?.trim();
+    if (!svc) { showToast('Please select a service.', true); return; }
+    if (!shipmentData.otherServices) shipmentData.otherServices = [];
+    if (shipmentData.otherServices.some(s => s.serviceName === svc)) {
+        showToast('This service is already added.', true); return;
+    }
+    shipmentData.otherServices.push({ serviceName: svc, vendor: vendor || '' });
+    document.getElementById('otherSvcSelector').value = '';
+    document.getElementById('otherSvcVendor').value  = '';
+    renderOtherServices();
+    renderVendorSnapshot();
+    populatePurchaseVendorDropdown();
+    showToast('Service added to shipment.');
+}
+
+function removeOtherService(idx) {
+    shipmentData.otherServices.splice(idx, 1);
+    renderOtherServices();
+    renderVendorSnapshot();
+    populatePurchaseVendorDropdown();
+}
+
+// ══════════════════════════════════════ FINANCIAL SUMMARY (REVENUE / COST) ══════════════════════════════════════
+
+// Pulls every vendor selected during booking into one place
+function getBookingVendors() {
+    const vendors = [];
+    if (shipmentData.clearanceVendor && shipmentData.clearanceVendor.trim()) {
+        vendors.push({ name: shipmentData.clearanceVendor.trim(), role: 'Clearance Vendor / Broker', source: 'nature' });
+    }
+    if (shipmentData.purchaseVendor && shipmentData.purchaseVendor.trim()) {
+        vendors.push({ name: shipmentData.purchaseVendor.trim(), role: 'Carrier Vendor (' + (shipmentData.carrier || '—') + ')', source: 'carrier' });
+    }
+    (shipmentData.otherServices || []).forEach(svc => {
+        if (svc.vendor && svc.vendor.trim()) {
+            vendors.push({ name: svc.vendor.trim(), role: svc.serviceName, source: 'otherService' });
+        }
+    });
+    // De-duplicate by vendor name, but keep all role tags
+    const map = {};
+    vendors.forEach(v => {
+        if (!map[v.name]) map[v.name] = { name: v.name, roles: [] };
+        if (!map[v.name].roles.includes(v.role)) map[v.name].roles.push(v.role);
+    });
+    return Object.values(map);
+}
+
+// Read current vendor fields directly from the DOM (live, before submit) so the
+// snapshot updates instantly as the operator fills the Carrier/Nature/Other Services sections
+function getLiveBookingVendors() {
+    const vendors = [];
+    const cv = document.getElementById('clearanceVendor')?.value?.trim();
+    const pv = document.getElementById('purchaseVendor')?.value?.trim();
+    const carrierName = document.getElementById('carrier')?.value || shipmentData.carrier || '—';
+    if (cv) vendors.push({ name: cv, roles: ['Clearance Vendor / Broker (' + (shipmentData.nature || '—') + ')'] });
+    if (pv) vendors.push({ name: pv, roles: ['Carrier Vendor (' + carrierName + ')'] });
+    (shipmentData.otherServices || []).forEach(svc => {
+        if (svc.vendor && svc.vendor.trim()) vendors.push({ name: svc.vendor.trim(), roles: [svc.serviceName] });
+    });
+    // De-dupe
+    const map = {};
+    vendors.forEach(v => {
+        if (!map[v.name]) map[v.name] = { name: v.name, roles: [] };
+        v.roles.forEach(r => { if (!map[v.name].roles.includes(r)) map[v.name].roles.push(r); });
+    });
+    return Object.values(map);
+}
+
+function renderVendorSnapshot() {
+    const container = document.getElementById('vendorSnapshot');
+    if (!container) return;
+    const vendors = getLiveBookingVendors();
+    if (!vendors.length) {
+        container.innerHTML = `<p class="text-[11px] text-slate-400 italic">No vendors selected yet — fill Clearance Vendor, Carrier Vendor Name, or Other Services vendors above to see them here.</p>`;
+        return;
+    }
+    container.innerHTML = vendors.map(v => `
+        <div class="flex items-center gap-2 px-3 py-1.5 bg-white border border-indigo-200 rounded-full text-[11px] shadow-sm">
+            <i class="fas fa-building text-indigo-400"></i>
+            <span class="font-bold text-slate-700">${v.name}</span>
+            <span class="text-slate-400">·</span>
+            <span class="text-indigo-500">${v.roles.join(', ')}</span>
+        </div>
+    `).join('');
+}
+
+// Keeps the Purchase Vendor dropdown synced with vendors chosen during booking
+function populatePurchaseVendorDropdown() {
+    const sel = document.getElementById('purchaseVendorSelect');
+    if (!sel) return;
+    const vendors = getLiveBookingVendors();
+    const current = sel.value;
+    sel.innerHTML = '<option value="">-- Select Vendor --</option>' +
+        vendors.map(v => `<option value="${v.name}" ${current === v.name ? 'selected' : ''}>${v.name} (${v.roles[0]})</option>`).join('') +
+        '<option value="__OTHER__">+ Other / Type manually</option>';
+}
+
+function calcLineTotal(qty, rate, taxRate) {
+    const amount = (parseFloat(qty) || 0) * (parseFloat(rate) || 0);
+    const taxAmt = amount * ((parseFloat(taxRate) || 0) / 100);
+    return { amount, taxAmt, total: amount + taxAmt };
+}
+
+// ── SALE ITEMS (REVENUE) — Category → Charge Head → SAC structure ─────────
+function populateSaleCategoryDropdown() {
+    const sel = document.getElementById('saleCategory');
+    if (!sel) return;
+    const mode = shipmentData.transportMode === 'sea' ? 'sea' : 'air';
+    const categories = Object.keys(REVENUE_HEADS[mode]);
+    sel.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    // Auto-select category matching the booking's chosen carrier (Air) for convenience
+    if (mode === 'air') {
+        const carrier = shipmentData.carrier;
+        if (['UPS', 'DHL', 'FedEx'].includes(carrier) && categories.includes('UPS/FedEx/DHL')) {
+            sel.value = 'UPS/FedEx/DHL';
+        } else if ((carrier === 'FF' || carrier === 'Others') && categories.includes('Port to Port - Air')) {
+            sel.value = 'Port to Port - Air';
+        }
+    }
+    onSaleCategoryChange();
+}
+
+function onSaleCategoryChange() {
+    const mode = shipmentData.transportMode === 'sea' ? 'sea' : 'air';
+    const categorySel = document.getElementById('saleCategory');
+    const headSel = document.getElementById('saleChargeHead');
+    if (!categorySel || !headSel) return;
+    const category = categorySel.value;
+    const catData = REVENUE_HEADS[mode][category];
+    if (!catData) return;
+    headSel.innerHTML = catData.heads.map((h, i) => `<option value="${i}">${h.name}</option>`).join('');
+    onSaleHeadChange();
+}
+
+function onSaleHeadChange() {
+    const mode = shipmentData.transportMode === 'sea' ? 'sea' : 'air';
+    const categorySel = document.getElementById('saleCategory');
+    const headSel = document.getElementById('saleChargeHead');
+    const sacInput = document.getElementById('saleSacCode');
+    const taxInput = document.getElementById('saleTaxRate');
+    if (!categorySel || !headSel || !sacInput) return;
+    const catData = REVENUE_HEADS[mode][categorySel.value];
+    if (!catData) return;
+    const head = catData.heads[parseInt(headSel.value)];
+    if (!head) return;
+    sacInput.value = head.sac;
+    if (taxInput) taxInput.value = head.gst;
+}
+
+function onSaleCurrencyChange() {
+    const currency = document.getElementById('saleCurrency')?.value;
+    const container = document.getElementById('saleExRateContainer');
+    if (!container) return;
+    container.style.display = (currency && currency !== 'INR') ? '' : 'none';
+}
+
+function onPurchaseCurrencyChange() {
+    const currency = document.getElementById('purchaseCurrency')?.value;
+    const container = document.getElementById('purchaseExRateContainer');
+    if (!container) return;
+    container.style.display = (currency && currency !== 'INR') ? '' : 'none';
+}
+
+function renderSaleItems() {
+    const tbody = document.getElementById('saleItemsBody');
+    if (!tbody) return;
+    if (!shipmentData.saleItems.length) {
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-slate-400 italic text-xs py-3">No sale items added yet.</td></tr>`;
+    } else {
+        tbody.innerHTML = shipmentData.saleItems.map((item, idx) => `
+            <tr class="border-b border-slate-100 text-xs">
+                <td class="px-2 py-2 text-slate-500">${item.category}</td>
+                <td class="px-2 py-2 font-medium text-slate-800">${item.description}</td>
+                <td class="px-2 py-2 text-center mono text-slate-500">${item.sacCode}</td>
+                <td class="px-2 py-2 text-center text-slate-600">${item.unitType}</td>
+                <td class="px-2 py-2 text-center">${item.qty}</td>
+                <td class="px-2 py-2 text-center">${item.currency} ${item.rate.toFixed(2)}</td>
+                <td class="px-2 py-2 text-center">${item.amount.toFixed(2)}</td>
+                <td class="px-2 py-2 text-center mono text-slate-500">${item.currency === 'INR' ? '—' : item.exRate.toFixed(4)}</td>
+                <td class="px-2 py-2 text-center">${item.taxRate}% (${item.taxAmt.toFixed(2)})</td>
+                <td class="px-2 py-2 text-center font-bold text-emerald-700 mono">₹${item.totalInr.toFixed(2)}</td>
+                <td class="px-2 py-2 text-center">
+                    <button type="button" onclick="removeSaleItem(${idx})" class="w-6 h-6 inline-flex items-center justify-center bg-rose-500 hover:bg-rose-600 text-white rounded-md"><i class="fas fa-trash-alt text-[9px]"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    updateFinancialTotals();
+}
+
+function addSaleItem() {
+    const mode          = shipmentData.transportMode === 'sea' ? 'sea' : 'air';
+    const category      = document.getElementById('saleCategory')?.value;
+    const headIdx       = parseInt(document.getElementById('saleChargeHead')?.value);
+    const catData       = REVENUE_HEADS[mode]?.[category];
+    const headObj       = catData?.heads?.[headIdx];
+    const description   = headObj?.name || '';
+    const sacCode        = document.getElementById('saleSacCode')?.value || headObj?.sac || '';
+    const unitType        = document.getElementById('saleUnitType')?.value || 'Fix';
+    const qty              = parseFloat(document.getElementById('saleQty')?.value) || 0;
+    const rate              = parseFloat(document.getElementById('saleRate')?.value) || 0;
+    const currency           = document.getElementById('saleCurrency')?.value || 'INR';
+    const taxRate             = parseFloat(document.getElementById('saleTaxRate')?.value) || 0;
+
+    if (!category || !description) { showToast('Please select a Category and Charge Head.', true); return; }
+    if (qty <= 0 || rate <= 0) { showToast('Please enter valid Qty and Rate.', true); return; }
+
+    let exRate = 1;
+    if (currency !== 'INR') {
+        exRate = parseFloat(document.getElementById('saleExRate')?.value) || 0;
+        if (exRate <= 0) { showToast('Please enter a valid Exchange Rate for ' + currency + ' → INR.', true); return; }
+    }
+
+    const { amount, taxAmt, total } = calcLineTotal(qty, rate, taxRate);
+    const totalInr = total * exRate;
+
+    shipmentData.saleItems.push({ category, description, sacCode, unitType, qty, rate, amount, currency, exRate, taxRate, taxAmt, total, totalInr });
+
+    document.getElementById('saleQty').value = '';
+    document.getElementById('saleRate').value = '';
+    if (document.getElementById('saleExRate')) document.getElementById('saleExRate').value = '';
+
+    renderSaleItems();
+    showToast('Sale item added: ' + description);
+}
+
+function removeSaleItem(idx) {
+    shipmentData.saleItems.splice(idx, 1);
+    renderSaleItems();
+}
+
+// ── PURCHASE ITEMS (COSTS) ────────────────────────────────────────
+function renderPurchaseItems() {
+    const tbody = document.getElementById('purchaseItemsBody');
+    if (!tbody) return;
+    if (!shipmentData.purchaseItems.length) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-slate-400 italic text-xs py-3">No purchase / cost items added yet.</td></tr>`;
+    } else {
+        tbody.innerHTML = shipmentData.purchaseItems.map((item, idx) => `
+            <tr class="border-b border-slate-100 text-xs">
+                <td class="px-2 py-2 font-semibold text-slate-700">${item.vendor}</td>
+                <td class="px-2 py-2">${item.description}</td>
+                <td class="px-2 py-2 text-center text-slate-600">${item.unitType}</td>
+                <td class="px-2 py-2 text-center">${item.qty}</td>
+                <td class="px-2 py-2 text-center">${item.currency} ${item.rate.toFixed(2)}</td>
+                <td class="px-2 py-2 text-center">${item.amount.toFixed(2)}</td>
+                <td class="px-2 py-2 text-center mono text-slate-500">${item.currency === 'INR' ? '—' : item.exRate.toFixed(4)}</td>
+                <td class="px-2 py-2 text-center">${item.taxRate}% (${item.taxAmt.toFixed(2)})</td>
+                <td class="px-2 py-2 text-center font-bold text-rose-700 mono">₹${item.totalInr.toFixed(2)}</td>
+                <td class="px-2 py-2 text-center">
+                    <button type="button" onclick="removePurchaseItem(${idx})" class="w-6 h-6 inline-flex items-center justify-center bg-rose-500 hover:bg-rose-600 text-white rounded-md"><i class="fas fa-trash-alt text-[9px]"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    updateFinancialTotals();
+}
+
+function addPurchaseItem() {
+    let vendor = document.getElementById('purchaseVendorSelect')?.value;
+    if (vendor === '__OTHER__') {
+        vendor = prompt('Enter vendor name:')?.trim();
+        if (!vendor) { showToast('Vendor name is required.', true); return; }
+    }
+    const description = document.getElementById('purchaseDesc')?.value?.trim();
+    const unitType = document.getElementById('purchaseUnitType')?.value || 'Fix';
+    const qty = parseFloat(document.getElementById('purchaseQty')?.value) || 0;
+    const rate = parseFloat(document.getElementById('purchaseRate')?.value) || 0;
+    const currency = document.getElementById('purchaseCurrency')?.value || 'INR';
+    const taxRate = parseFloat(document.getElementById('purchaseTaxRate')?.value) || 0;
+
+    if (!vendor) { showToast('Please select or enter a vendor.', true); return; }
+    if (!description) { showToast('Please enter a description for the cost item.', true); return; }
+    if (qty <= 0 || rate <= 0) { showToast('Please enter valid Qty and Rate.', true); return; }
+
+    let exRate = 1;
+    if (currency !== 'INR') {
+        exRate = parseFloat(document.getElementById('purchaseExRate')?.value) || 0;
+        if (exRate <= 0) { showToast('Please enter a valid Exchange Rate for ' + currency + ' → INR.', true); return; }
+    }
+
+    const { amount, taxAmt, total } = calcLineTotal(qty, rate, taxRate);
+    const totalInr = total * exRate;
+
+    shipmentData.purchaseItems.push({ vendor, description, unitType, qty, rate, amount, currency, exRate, taxRate, taxAmt, total, totalInr });
+
+    document.getElementById('purchaseDesc').value = '';
+    document.getElementById('purchaseQty').value = '';
+    document.getElementById('purchaseRate').value = '';
+    document.getElementById('purchaseTaxRate').value = '';
+    if (document.getElementById('purchaseExRate')) document.getElementById('purchaseExRate').value = '';
+    populatePurchaseVendorDropdown();
+
+    renderPurchaseItems();
+    showToast('Cost item added for ' + vendor + '.');
+}
+
+function removePurchaseItem(idx) {
+    shipmentData.purchaseItems.splice(idx, 1);
+    renderPurchaseItems();
+}
+
+// ── PROFITABILITY ──────────────────────────────────────────────────
+function updateFinancialTotals() {
+    const totalRevenue = (shipmentData.saleItems || []).reduce((s, i) => s + i.totalInr, 0);
+    const totalCost    = (shipmentData.purchaseItems || []).reduce((s, i) => s + i.totalInr, 0);
+    const profit        = totalRevenue - totalCost;
+    const margin         = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+
+    const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+
+    setText('totalRevenueDisplay', '₹' + totalRevenue.toFixed(2));
+    setText('totalCostDisplay',    '₹' + totalCost.toFixed(2));
+    setText('finTotalRevenue',     '₹' + totalRevenue.toFixed(2));
+    setText('finTotalCost',        '₹' + totalCost.toFixed(2));
+    setText('finProfitLoss',       (profit >= 0 ? '₹' : '-₹') + Math.abs(profit).toFixed(2));
+    setText('finProfitMargin',     margin.toFixed(2) + '%');
+
+    const profitEl = document.getElementById('finProfitLoss');
+    if (profitEl) profitEl.className = 'text-lg font-extrabold mono ' + (profit >= 0 ? 'text-blue-700' : 'text-rose-700');
+}
+
+// ══════════════════════════════════════ COMPLIANCE DOCS ══════════════════════════════════════
+
+function renderComplianceDocs() {
+    const container = document.getElementById('complianceDocsList');
+    if (!container) return;
+    if (!shipmentData.otherDocuments.length) {
+        container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-2">No compliance documents added.</p>`;
+        return;
+    }
+    container.innerHTML = shipmentData.otherDocuments.map((doc, idx) => `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center border border-slate-100 p-3 rounded-xl bg-slate-50">
+            <input type="text" oninput="updateDocName(${idx}, this.value)" value="${doc.docName}" placeholder="e.g. Packing List, COO, BOE..." class="field text-xs" required>
+            <div class="text-xs text-slate-600">
+                <input type="file" onchange="onComplianceDocFileChange(${idx}, this)" class="w-full text-[11px] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-white file:text-slate-600 hover:file:bg-slate-100">
+                ${doc.fileName ? `<p class="mt-1 text-emerald-600 font-semibold flex items-center gap-1"><i class="fas fa-check-circle text-xs"></i> ${doc.fileName}</p>` : ''}
+            </div>
+            <div class="flex justify-end">
+                <button type="button" onclick="removeComplianceDocRow(${idx})" class="text-xs font-semibold text-rose-500 hover:text-rose-700 flex items-center gap-1.5 px-3 py-1.5 hover:bg-rose-50 rounded-lg transition">
+                    <i class="far fa-trash-alt"></i> Remove
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function addNewComplianceDocRow() { shipmentData.otherDocuments.push({ docName: "", file: null, fileName: "" }); renderComplianceDocs(); }
+function removeComplianceDocRow(idx) { shipmentData.otherDocuments.splice(idx, 1); renderComplianceDocs(); }
+function updateDocName(idx, val) { shipmentData.otherDocuments[idx].docName = val; }
+function onComplianceDocFileChange(idx, el) {
+    if (el.files.length === 0) return;
+    shipmentData.otherDocuments[idx].file = el.files[0];
+    shipmentData.otherDocuments[idx].fileName = el.files[0].name;
+    renderComplianceDocs();
+}
+
+// ══════════════════════════════════════ FORM SUBMIT ══════════════════════════════════════
+
+async function submitShipmentForm(event) {
+    event.preventDefault();
+    const val      = parseFloat(document.getElementById('invoiceTotalValue').value) || 0;
+    const currency = document.getElementById('invoiceCurrency').value;
+    const rate     = parseFloat(document.getElementById('exchangeRate').value) || 0;
+    const inrVal   = currency === 'INR' ? val : (rate > 0 ? val * rate : 0);
+
+    if (shipmentData.nature === 'Sample') {
+        if (inrVal <= 0) {
+            showToast("Please enter the declared value and exchange rate before saving a Sample shipment.", true);
+            return;
+        }
+        if (inrVal > 25000) {
+            const foreignEq = currency !== 'INR' && rate > 0 ? ` (${currency} ${(25000 / rate).toFixed(2)})` : '';
+            showToast(`⛔ Sample shipment blocked: declared value ₹${inrVal.toLocaleString('en-IN', {maximumFractionDigits:0})} exceeds the INR 25,000 limit${foreignEq}. Reduce the value or change Nature of Shipment.`, true);
+            return;
+        }
+    }
+
+    const loader = document.getElementById('globalLoader');
+    loader.classList.remove('hidden');
+
+    await new Promise(r => setTimeout(r, 700)); // Simulate processing
+
+    // Collect form data
+    shipmentData.bookingDate = document.getElementById('bookingDate').value || new Date().toISOString().split('T')[0];
+    shipmentData.originCountry = document.getElementById('originCountry').value;
+    shipmentData.originPort = document.getElementById('originPort').value;
+    shipmentData.destCountry = document.getElementById('destCountry').value;
+    shipmentData.destPort = document.getElementById('destPort').value;
+    shipmentData.shipperName = document.getElementById('shipperName').value;
+    shipmentData.consignee = document.getElementById('consignee').value;
+    shipmentData.billTo = document.getElementById('billTo').value;
+    shipmentData.clearanceVendor = document.getElementById('clearanceVendor')?.value || "";
+    shipmentData.purchaseVendor  = document.getElementById('purchaseVendor')?.value  || "";
+    shipmentData.customerInvoiceNo = document.getElementById('customerInvoiceNo').value;
+    shipmentData.customerInvoiceDate = document.getElementById('customerInvoiceDate').value;
+    shipmentData.invoiceTotalValue = val;
+    shipmentData.invoiceCurrency = document.getElementById('invoiceCurrency').value;
+    shipmentData.exchangeRate = rate;
+    shipmentData.sbNumber = document.getElementById('sbNumber').value;
+    shipmentData.sbDate = document.getElementById('sbDate').value;
+    shipmentData.remarks = document.getElementById('remarks').value;
+
+    // Note: file data is kept as local metadata only (no cloud upload in standalone mode)
+    const id = saveShipment({ ...shipmentData });
+
+    loader.classList.add('hidden');
+    showToast(`Shipment saved! ID: ${id}`);
+    setTimeout(() => {
+        resetShipmentDataState();
+        switchTab('logs');
+    }, 1200);
+}
+
+function clearFormData() {
+    resetShipmentDataState();
+    renderShipmentForm(document.getElementById('main-content-area'));
+    showToast("Form cleared.");
+}
+
+function resetShipmentDataState() {
+    shipmentData = {
+        bookingDate: "", direction: "export", originCountry: "India", originPort: "", destCountry: "", destPort: "",
+        billTo: "Shipper", shipperName: "", consignee: "", nature: "Commercial", clearanceVendor: "",
+        transportMode: "air", carrier: "UPS", service: "Saver", purchaseVendor: "", hawb: "", mawb: "",
+        customerInvoiceNo: "", customerInvoiceDate: "", invoiceTotalValue: "", invoiceCurrency: "USD",
+        exchangeRate: "", ewabFileId: "", ewabFileName: "", sbNumber: "", sbDate: "",
+        packages: [{ qty: 1, length: "", width: "", height: "", unit: "inches", weight: "", packingType: "Wooden Pallet", goodsDesc: "", hsCode: "" }],
+        otherDocuments: [], selectedServices: [], otherServices: [],
+        saleItems: [], purchaseItems: [], remarks: ""
+    };
+}
+
+// ══════════════════════════════════════ DASHBOARD ══════════════════════════════════════
+
+function renderDashboard(container) {
+    const records = getShipments();
+    const airCount = records.filter(r => r.transportMode === 'air').length;
+    const seaCount = records.filter(r => r.transportMode === 'sea').length;
+    const exportCount = records.filter(r => r.direction === 'export').length;
+
+    container.innerHTML = `
+        <div class="space-y-5">
+            <!-- Welcome banner -->
+            <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 p-6 rounded-3xl text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 relative overflow-hidden">
+                <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 30% 50%, rgba(59,130,246,0.8) 0%, transparent 60%);"></div>
+                <div class="relative">
+                    <p class="text-blue-300 text-xs font-semibold uppercase tracking-wider mb-1">Welcome Back</p>
+                    <h2 class="text-2xl font-extrabold tracking-tight">Freight Operations Hub</h2>
+                    <p class="text-blue-200 text-sm mt-1">Biz LogicX · Single-window logistics orchestration</p>
+                </div>
+                <button onclick="switchTab('shipments')" class="relative px-5 py-2.5 bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold rounded-xl shadow-lg transition flex-shrink-0 flex items-center gap-2">
+                    <i class="fas fa-plus-circle"></i> New Shipment
+                </button>
+            </div>
+
+            <!-- KPIs -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                ${kpiCard('fas fa-file-alt', 'Total Shipments', records.length, 'bg-blue-50 text-blue-600', 'All time records')}
+                ${kpiCard('fas fa-plane', 'Air Freight', airCount, 'bg-indigo-50 text-indigo-600', 'Air cargo entries')}
+                ${kpiCard('fas fa-ship', 'Ocean Freight', seaCount, 'bg-cyan-50 text-cyan-600', 'Sea cargo entries')}
+                ${kpiCard('fas fa-plane-departure', 'Exports', exportCount, 'bg-emerald-50 text-emerald-600', 'Outbound shipments')}
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="card p-4 flex flex-col gap-2 cursor-pointer hover:shadow-md transition" onclick="switchTab('shipments')">
+                    <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm">
+                        <i class="fas fa-plus text-white text-sm"></i>
+                    </div>
+                    <p class="font-bold text-slate-800 text-sm">Log Shipment</p>
+                    <p class="text-xs text-slate-400">Create a new freight entry</p>
+                </div>
+                <div class="card p-4 flex flex-col gap-2 cursor-pointer hover:shadow-md transition" onclick="switchTab('logs')">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm">
+                        <i class="fas fa-table text-white text-sm"></i>
+                    </div>
+                    <p class="font-bold text-slate-800 text-sm">View Ledger</p>
+                    <p class="text-xs text-slate-400">Browse all shipment records</p>
+                </div>
+                <div class="card p-4 flex flex-col gap-2 cursor-pointer hover:shadow-md transition" onclick="toggleAiPanel()">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm">
+                        <i class="fas fa-robot text-white text-sm"></i>
+                    </div>
+                    <p class="font-bold text-slate-800 text-sm">AI Assistant</p>
+                    <p class="text-xs text-slate-400">Ask logistics questions</p>
+                </div>
+                <div class="card p-4 flex flex-col gap-2 cursor-pointer hover:shadow-md transition" onclick="switchTab('settings')">
+                    <div class="w-10 h-10 rounded-xl bg-slate-700 flex items-center justify-center shadow-sm">
+                        <i class="fas fa-cog text-white text-sm"></i>
+                    </div>
+                    <p class="font-bold text-slate-800 text-sm">Configuration</p>
+                    <p class="text-xs text-slate-400">System settings & database</p>
+                </div>
+            </div>
+
+            <!-- Recent Shipments -->
+            ${records.length > 0 ? `
+            <div class="card p-5">
+                <div class="sec-header"><i class="fas fa-history"></i> Recent Transactions</div>
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead><tr>
+                            <th>Shipment ID</th><th>Date</th><th>Route</th><th>Shipper</th>
+                            <th>Carrier</th><th>Value</th><th>Direction</th>
+                        </tr></thead>
+                        <tbody>
+                            ${records.slice(0, 5).map(r => `
+                                <tr>
+                                    <td><span class="mono font-bold text-blue-600 text-xs">${r.shipmentId}</span></td>
+                                    <td class="text-slate-500">${new Date(r.createdAt).toLocaleDateString('en-IN')}</td>
+                                    <td><span class="font-medium text-slate-700">${r.originPort || '-'}</span> <span class="text-slate-300">→</span> <span class="text-slate-500">${r.destPort || '-'}</span></td>
+                                    <td class="text-slate-600 max-w-[120px] truncate">${r.shipperName || '-'}</td>
+                                    <td class="text-slate-600">${r.carrier || '-'} <span class="text-slate-400 text-[10px]">${r.service || ''}</span></td>
+                                    <td class="font-semibold text-slate-700">${r.invoiceCurrency} ${r.invoiceTotalValue || '-'}</td>
+                                    <td><span class="badge ${r.direction === 'export' ? 'badge-export' : 'badge-import'}">${r.direction}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>` : ''}
+
+            <!-- Operator Guide -->
+            <div class="card p-5">
+                <div class="sec-header"><i class="fas fa-compass"></i> Operator Workflow Guide</div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    ${['Setup & Configure', 'Log Dispatch', 'Auto-Compliance Checks', 'Audit Trail'].map((step, i) => `
+                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
+                            <p class="mono text-blue-400 font-bold text-xs">0${i + 1}</p>
+                            <p class="font-bold text-slate-800 text-sm">${step}</p>
+                            <p class="text-xs text-slate-400">${['Initialize database and configure system parameters.', 'Enter dimensions, values, and attach compliance documents.', 'Automatic warnings for EWAB, sample limits, and compliance.', 'View and audit all committed entries in the Logs ledger.'][i]}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function kpiCard(icon, label, value, iconClass, sub) {
+    return `
+        <div class="card p-5 flex items-center gap-4">
+            <div class="p-3 ${iconClass} rounded-xl text-lg"><i class="${icon}"></i></div>
+            <div>
+                <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide">${label}</p>
+                <p class="text-2xl font-extrabold text-slate-800 mono">${value}</p>
+                <p class="text-[10px] text-slate-400">${sub}</p>
+            </div>
+        </div>
+    `;
+}
+
+// ══════════════════════════════════════ LOGS ══════════════════════════════════════
+
+function renderLogsTable(container) {
+    const records = getShipments();
+
+    container.innerHTML = `
+        <div class="card p-5 space-y-4">
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-3">
+                <div>
+                    <h3 class="font-bold text-slate-800">Shipment Ledger</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">${records.length} record${records.length !== 1 ? 's' : ''} stored locally</p>
+                </div>
+                <div class="flex gap-2">
+                    <input id="log-search" type="text" placeholder="Search shipments..." oninput="filterLogs()" class="field text-xs w-48">
+                    ${records.length > 0 ? `
+                    <button onclick="exportToCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl flex items-center gap-2 transition">
+                        <i class="fas fa-download"></i> Export CSV
+                    </button>` : ''}
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="data-table" id="logs-table">
+                    <thead><tr>
+                        <th>Shipment ID</th>
+                        <th>Date</th>
+                        <th>Direction</th>
+                        <th>Origin → Destination</th>
+                        <th>Shipper</th>
+                        <th>Carrier / Service</th>
+                        <th>Value</th>
+                        <th>Mode</th>
+                        <th>Custom Agent</th>
+                        <th>Profit (INR)</th>
+                        <th>Financials</th>
+                    </tr></thead>
+                    <tbody id="logs-table-body">
+                        ${records.length === 0 ? `
+                        <tr><td colspan="11" class="py-12 text-center text-slate-400 font-medium">
+                            <div class="flex flex-col items-center gap-3">
+                                <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-inbox text-slate-300 text-xl"></i>
+                                </div>
+                                <p class="font-semibold text-slate-500">No records yet</p>
+                                <button onclick="switchTab('shipments')" class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shadow">Create First Shipment</button>
+                            </div>
+                        </td></tr>` : logsTableRows(records)}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function logsTableRows(records) {
+    return records.map(r => {
+        const totalRevenue = (r.saleItems || []).reduce((s, i) => s + (i.totalInr || 0), 0);
+        const totalCost    = (r.purchaseItems || []).reduce((s, i) => s + (i.totalInr || 0), 0);
+        const profit       = totalRevenue - totalCost;
+        return `
+        <tr class="border-b border-slate-100 hover:bg-slate-50 transition" data-search="${[r.shipmentId, r.shipperName, r.originPort, r.destPort, r.carrier].join(' ').toLowerCase()}">
+            <td><span class="mono font-bold text-blue-600 text-xs">${r.shipmentId}</span></td>
+            <td class="text-slate-500 text-xs">${new Date(r.createdAt).toLocaleDateString('en-IN')}</td>
+            <td><span class="badge ${r.direction === 'export' ? 'badge-export' : 'badge-import'}">${r.direction || '-'}</span></td>
+            <td>
+                <p class="font-medium text-slate-800 text-xs">${r.originPort || '-'} <span class="text-slate-300">→</span></p>
+                <p class="text-slate-400 text-[10px]">${r.destPort || '-'}</p>
+            </td>
+            <td class="text-slate-700 max-w-[140px] truncate text-xs">${r.shipperName || '-'}</td>
+            <td>
+                <p class="font-semibold text-slate-800 text-xs">${r.carrier || '-'}</p>
+                <p class="text-slate-400 text-[10px]">${r.service || '-'}</p>
+            </td>
+            <td class="font-bold text-slate-800 mono text-xs">${r.invoiceCurrency || ''} ${r.invoiceTotalValue || '-'}</td>
+            <td><span class="badge ${r.transportMode === 'air' ? 'bg-blue-50 text-blue-700' : 'bg-cyan-50 text-cyan-700'}">${r.transportMode || '-'}</span></td>
+            <td class="text-slate-500 text-xs">${r.clearanceVendor || 'In-house'}</td>
+            <td class="font-bold mono text-xs ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}">₹${profit.toFixed(2)}</td>
+            <td>
+                <button onclick="exportFinancialSummaryCSV('${r.shipmentId}')" title="Download Financial Summary CSV"
+                    class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[10px] font-semibold rounded-lg border border-indigo-200 transition flex items-center gap-1">
+                    <i class="fas fa-file-invoice-dollar"></i> CSV
+                </button>
+            </td>
+        </tr>
+    `;
+    }).join('');
+}
+
+function filterLogs() {
+    const q = document.getElementById('log-search')?.value.toLowerCase() || '';
+    document.querySelectorAll('#logs-table-body tr[data-search]').forEach(row => {
+        row.style.display = row.dataset.search.includes(q) ? '' : 'none';
+    });
+}
+
+function exportToCSV() {
+    const records = getShipments();
+    if (!records.length) { showToast("No records to export.", true); return; }
+    const headers = ['Shipment ID', 'Date', 'Direction', 'Mode', 'Origin Country', 'Origin Port', 'Dest Country', 'Dest Port', 'Shipper', 'Consignee', 'Bill To', 'Carrier', 'Service', 'MAWB', 'HAWB', 'Invoice No', 'Invoice Date', 'Value', 'Currency', 'Exchange Rate', 'SB Number', 'Nature', 'Custom Agent', 'Total Revenue (INR)', 'Total Cost (INR)', 'Profit/Loss (INR)', 'Profit Margin (%)', 'Remarks'];
+    const rows = records.map(r => {
+        const totalRevenue = (r.saleItems || []).reduce((s, i) => s + (i.totalInr || 0), 0);
+        const totalCost    = (r.purchaseItems || []).reduce((s, i) => s + (i.totalInr || 0), 0);
+        const profit       = totalRevenue - totalCost;
+        const margin        = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+        return [
+            r.shipmentId, new Date(r.createdAt).toLocaleDateString('en-IN'), r.direction, r.transportMode,
+            r.originCountry, r.originPort, r.destCountry, r.destPort, r.shipperName, r.consignee, r.billTo,
+            r.carrier, r.service, r.mawb, r.hawb, r.customerInvoiceNo, r.customerInvoiceDate, r.invoiceTotalValue,
+            r.invoiceCurrency, r.exchangeRate, r.sbNumber, r.nature, r.clearanceVendor,
+            totalRevenue.toFixed(2), totalCost.toFixed(2), profit.toFixed(2), margin.toFixed(2), r.remarks
+        ].map(v => `"${v || ''}"`).join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `BizLogicX_Shipments_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    showToast("CSV export downloaded.");
+}
+
+// ── Per-shipment Financial Summary export (matches Sales/Cost report format) ──
+function exportFinancialSummaryCSV(shipmentId) {
+    const records = getShipments();
+    const r = records.find(rec => rec.shipmentId === shipmentId);
+    if (!r) { showToast('Shipment not found.', true); return; }
+
+    const totalRevenue = (r.saleItems || []).reduce((s, i) => s + (i.totalInr || 0), 0);
+    const totalCost    = (r.purchaseItems || []).reduce((s, i) => s + (i.totalInr || 0), 0);
+    const profit        = totalRevenue - totalCost;
+    const margin         = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+
+    let lines = [];
+    lines.push('BOOKING SUMMARY');
+    lines.push(`Job ID,${r.shipmentId}`);
+    lines.push(`Shipper,${r.shipperName || ''}`);
+    lines.push(`Consignee,${r.consignee || ''}`);
+    lines.push(`Bill To Party,${r.billTo || ''}`);
+    lines.push(`Origin,${r.originCountry || ''}`);
+    lines.push(`Destination,${r.destCountry || ''}`);
+    lines.push(`Mode,${r.transportMode || ''}`);
+    lines.push(`Master AWB/BL Number,${r.mawb || ''}`);
+    lines.push(`HAWB Number,${r.hawb || ''}`);
+    lines.push(`Invoice No,${r.customerInvoiceNo || ''}`);
+    lines.push(`Invoice Date,${r.customerInvoiceDate || ''}`);
+    lines.push(`Booking Date,${r.bookingDate || ''}`);
+    lines.push(`Carrier,${r.carrier || ''}`);
+    lines.push(`Service Product,${r.service || ''}`);
+    lines.push('');
+    lines.push('FINANCIAL OVERVIEW');
+    lines.push(`Total Revenue (INR),${totalRevenue.toFixed(2)}`);
+    lines.push(`Total Cost (INR),${totalCost.toFixed(2)}`);
+    lines.push(`Profit/Loss (INR),${profit.toFixed(2)}`);
+    lines.push(`Profit Margin (%),${margin.toFixed(2)}`);
+    lines.push('');
+    lines.push('');
+    lines.push('SALE ITEMS (REVENUE)');
+    lines.push('Category,Charge Head,SAC Code,Unit Type,Qty,Rate,Amount,Currency,Ex. Rate,Tax Rate,Tax Amt,Total,Total (INR),Remarks');
+    (r.saleItems || []).forEach(i => {
+        lines.push(`${i.category || ''},${i.description},${i.sacCode || ''},${i.unitType || 'Fix'},${i.qty},${i.rate},${i.amount.toFixed(2)},${i.currency},${i.exRate},${i.taxRate},${i.taxAmt.toFixed(2)},${i.total.toFixed(2)},${i.totalInr.toFixed(2)},`);
+    });
+    lines.push('');
+    lines.push('');
+    lines.push('PURCHASE ITEMS (COSTS)');
+    lines.push('Vendor,Description,Unit Type,Qty,Rate,Amount,Currency,Ex. Rate,Tax Rate,Tax Amt,Total,Total (INR),Remarks');
+    (r.purchaseItems || []).forEach(i => {
+        lines.push(`${i.vendor},${i.description},${i.unitType || 'Fix'},${i.qty},${i.rate},${i.amount.toFixed(2)},${i.currency},${i.exRate},${i.taxRate},${i.taxAmt.toFixed(2)},${i.total.toFixed(2)},${i.totalInr.toFixed(2)},`);
+    });
+
+    const csv = lines.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Financial-Summary-${r.shipmentId}.csv`;
+    a.click();
+    showToast('Financial Summary CSV downloaded for ' + r.shipmentId);
+}
+
+// ══════════════════════════════════════ SETTINGS ══════════════════════════════════════
+
+function renderSettings(container) {
+    const records = getShipments();
+    container.innerHTML = `
+        <div class="max-w-2xl space-y-5">
+            <div class="card p-6 space-y-4">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">System Configuration</h3>
+                    <p class="text-xs text-slate-400 mt-1">Manage local database and app settings.</p>
+                </div>
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                    <p class="text-xs font-bold text-slate-700">Database Status</p>
+                    <div class="grid grid-cols-2 gap-3 text-xs font-semibold text-slate-700">
+                        ${['Shipments Ledger', 'Package Data', 'Compliance Vault', 'VAS Matrix'].map(label => `
+                        <div class="p-3 rounded-xl border bg-white flex items-center justify-between shadow-sm">
+                            <span class="text-slate-600">${label}</span>
+                            <span class="text-emerald-500 flex items-center gap-1"><span class="dot-pulse"></span> Active</span>
+                        </div>`).join('')}
+                    </div>
+                </div>
+                <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-3">
+                    <p class="text-xs font-bold text-amber-900">Data Management</p>
+                    <p class="text-xs text-amber-700">Local storage contains <strong>${records.length} shipment record(s)</strong>. Clearing will permanently remove all data.</p>
+                    <button onclick="confirmClearData()" class="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl shadow transition">
+                        <i class="fas fa-trash mr-1"></i> Clear All Records
+                    </button>
+                </div>
+            </div>
+            <div class="card p-6 space-y-4">
+                <h3 class="font-bold text-slate-800">About Biz LogicX Portal</h3>
+                <div class="text-xs text-slate-500 space-y-1.5">
+                    <p>This portal is a standalone offline-capable shipment management system built for <strong class="text-slate-700">Biz LogicX Freight Solutions Pvt. Ltd.</strong></p>
+                    <p>Data is stored securely in your browser's local storage. Export CSV regularly to back up your records.</p>
+                    <p class="pt-2">
+                        <span class="mono bg-slate-100 px-2 py-1 rounded text-slate-600">Version 2.0</span>
+                        <span class="ml-2 text-slate-400">· AI-Powered · Offline Capable</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function confirmClearData() {
+    if (confirm("Are you sure? This will permanently delete ALL shipment records from local storage. This cannot be undone.")) {
+        clearAllShipments();
+        showToast("All records cleared.");
+        renderSettings(document.getElementById('main-content-area'));
+    }
+}
+
+// ══════════════════════════════════════ AI ASSISTANT ══════════════════════════════════════
+
+function toggleAiPanel() {
+    aiPanelOpen = !aiPanelOpen;
+    document.getElementById('ai-panel').classList.toggle('open', aiPanelOpen);
+    document.getElementById('ai-notif').classList.add('hidden');
+    if (aiPanelOpen) document.getElementById('ai-input').focus();
+}
+
+async function sendAiMessage() {
+    const input = document.getElementById('ai-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+
+    const messagesEl = document.getElementById('ai-messages');
+    messagesEl.innerHTML += `<div class="ai-msg user">${escapeHtml(msg)}</div>`;
+
+    const thinking = document.createElement('div');
+    thinking.className = 'ai-msg thinking';
+    thinking.textContent = 'Thinking...';
+    messagesEl.appendChild(thinking);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    aiConversation.push({ role: 'user', content: msg });
+
+    try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 1000,
+                system: `You are the logistics AI assistant for Biz LogicX Freight Solutions Pvt. Ltd., an integrated logistics orchestrator based in Ahmedabad, India. Biz LogicX is a non-asset-based single-window solution provider that manages international freight between shippers (exporters/importers) and carriers (UPS, DHL, FedEx, Maersk, etc). 
+
+Your role is to answer questions about: international freight, customs procedures, HS codes, Incoterms, EWAB/E-Way Bill rules, India's customs and export regulations, carrier services, volumetric weight calculations, CBM, LCL vs FCL, Shipping Bills, Bills of Lading, AWBs, documentation requirements, and logistics best practices.
+
+Be concise, professional, and specific. Use bullet points for lists. When relevant, reference Indian trade regulations (DGFT, ICEGATE, GST). Keep responses under 200 words.`,
+                messages: aiConversation.slice(-10)
+            })
+        });
+
+        const data = await response.json();
+        thinking.remove();
+
+        const reply = data.content?.map(b => b.text || '').join('') || 'Sorry, I could not process that request.';
+        aiConversation.push({ role: 'assistant', content: reply });
+
+        messagesEl.innerHTML += `<div class="ai-msg assistant">${formatAiResponse(reply)}</div>`;
+        document.getElementById('ai-notif').classList.toggle('hidden', aiPanelOpen);
+    } catch (err) {
+        thinking.remove();
+        messagesEl.innerHTML += `<div class="ai-msg error" style="background:#fff1f2;color:#9f1239;border-radius:14px;padding:10px 14px;font-size:12px;">⚠️ Could not connect to AI. Check network and try again.</div>`;
+    }
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function formatAiResponse(text) {
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/^- (.+)$/gm, '<span style="display:block;margin:2px 0;">• $1</span>')
+        .replace(/\n/g, '<br>');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+}
+
+</script>
+</body>
+</html>
