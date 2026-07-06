@@ -25,7 +25,7 @@ app.use(express.static(frontendPath));
 app.use("/backend/frontend", express.static(frontendPath));
 
 app.get("/", (req, res) => {
-    res.send("Shipment Management Backend Running...");
+    res.sendFile(path.join(frontendPath, "login.html"));
 });
 
 app.use("/api/auth", authRoutes);
