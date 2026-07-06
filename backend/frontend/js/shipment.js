@@ -1,4 +1,4 @@
-const API = "http://localhost:5000/api/shipments";
+const API = window.location.origin + "/api/shipments";
 
 // ================= Token =================
 const token = localStorage.getItem("token");

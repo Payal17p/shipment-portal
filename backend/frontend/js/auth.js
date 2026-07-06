@@ -1,4 +1,4 @@
-const FRONTEND = "http://localhost:5000";
+const FRONTEND = window.location.origin;
 const API = FRONTEND + "/api/auth";
 
 // ================= Register =================
